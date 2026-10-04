@@ -1,22 +1,42 @@
-# grzyby
+# grzyby-mcp
 
+Serwer MCP dla chatbotów (Claude, ChatGPT): pytasz „gdzie w okolicy X są teraz grzyby?”, a w
+odpowiedzi dostajesz **mapkę** z zaznaczonym kawałkiem lasu, krótkie uzasadnienie (drzewa,
+opady, temperatura) i link do trasy w Google Maps. Dane: Bank Danych o Lasach (drzewostany,
+zakazy wstępu) i pogoda z IMGW.
 
-## Requirements
+**Stan:** szkielet. Działa pusty serwer z bazą, aplikacja webowa i cała bramka jakości;
+narzędzia MCP jeszcze nie ma. Plan i kolejne etapy: [TODO.md](TODO.md), propozycja stacka:
+[docs/dev/propozycja-stacka.md](docs/dev/propozycja-stacka.md).
 
-`uv`, `pnpm` (via corepack), `just`, `podman` with `podman compose`; for the full gate also
-`helm`, `shellcheck` and `gitleaks`. After cloning: `just sync` (dependencies and the git hooks).
+Projekt hobbystyczny, bez części komercyjnej.
 
-## Everyday commands
+## Stack
+
+- **Serwer:** Python 3.14, FastAPI, PostgreSQL (psycopg, czyste SQL, migracje w
+  `grzyby_server/grzyby_server/migrations/`).
+- **Web:** React, Mantine, Vite, TypeScript strict.
+- **Uruchamianie:** na hoście (`just server`, `just web`), cały stack w kontenerach
+  (`just up`) albo na klastrze k3s przez Argo CD (`deploy/chart/`).
+- Założony z szablonu [solid-app-tpl](https://github.com/Manomenu/solid-app-tpl).
+
+## Wymagania
+
+`uv`, `pnpm` (przez corepack), `just`, `podman` z `podman compose`; do pełnej bramki także
+`helm`, `shellcheck` i `gitleaks`. Po sklonowaniu: `just sync` (zależności i hook gitleaks).
+Do testów w przeglądarce raz: `cd grzyby_web && pnpm exec playwright install chromium`.
+
+## Na co dzień
 
 ```sh
-just                 # every recipe, grouped
-just db up           # local PostgreSQL on :5443
-just server          # API on :6210 (Swagger at /docs)
-just web             # web app on :3210, proxies /api to the server
-just up              # the whole stack in containers on :8091 — no cluster needed
-just check           # the quality gate, exactly what CI runs
-just e2e             # browser tests against a real server and database
-just secrets backup  # copy the local .env files into Bitwarden (restore on a new machine)
+just                 # wszystkie komendy, w grupach
+just db up           # lokalny PostgreSQL na :5443
+just server          # API na :6210 (Swagger pod /docs)
+just web             # aplikacja na :3210, /api przekazuje do serwera
+just up              # cały stack w kontenerach na :8091 — bez klastra
+just check           # bramka jakości, dokładnie to, co odpala CI
+just e2e             # testy w przeglądarce na prawdziwym serwerze i bazie
+just secrets backup  # kopia lokalnych plików .env w Bitwardenie (restore na nowej maszynie)
 ```
 
-How the repo is organised and what every change must bring along: [AGENTS.md](AGENTS.md).
+Jak repo jest zorganizowane i co musi przynieść każda zmiana: [AGENTS.md](AGENTS.md).
