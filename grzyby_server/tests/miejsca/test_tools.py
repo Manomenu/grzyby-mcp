@@ -2,6 +2,7 @@
 
 import hashlib
 from collections.abc import Iterator
+from datetime import datetime
 from typing import Any
 
 import pytest
@@ -10,10 +11,11 @@ from psycopg_pool import ConnectionPool
 
 from grzyby_server import db
 from grzyby_server.app import mcp_http
-from grzyby_server.miejsca import tools
+from grzyby_server.miejsca import geocoding, tools
 from grzyby_server.miejsca.model import Answer, Grzyb, Miejsce, Prognoza
-from grzyby_server.miejsca.search import Query
+from grzyby_server.miejsca.search import POLAND, Query
 from grzyby_server.miejsca.tools import MAP_HTML, MAP_URI
+from tests.fake_web import FakeWeb, forest_services, open_meteo, stand
 
 # Streamable HTTP: the client accepts both, the server answers with JSON (json_response=True).
 HEADERS = {"accept": "application/json, text/event-stream", "content-type": "application/json", "host": "localhost:6210"}
@@ -131,3 +133,37 @@ def test_the_when_tool_is_listed_without_a_map_and_answers_in_text(
     result = rpc(client, "tools/call", {"name": "kiedy_na_grzyby", "arguments": {"miejscowosc": "Suwałki", "grzyby": ["kurka"]}})
 
     assert "Kiedy na: kurka" in result["content"][0]["text"]
+
+
+@pytest.fixture
+def clean_tables(pool: ConnectionPool) -> Iterator[None]:
+    """For tests that go through the tool's own connection, which commits: empty the feature's
+    tables afterwards, so other tests find them as they expect."""
+    yield
+    with pool.connection() as conn:
+        conn.execute(
+            "TRUNCATE wydzielenia, obszary_chronione, fetched_tiles, geocoding_cache, fetches, zakazy_wstepu, pogoda, weather_fetches"
+        )
+
+
+@pytest.mark.usefixtures("clean_tables")
+def test_the_when_tool_end_to_end(client: TestClient, pool: ConnectionPool, monkeypatch: pytest.MonkeyPatch) -> None:
+    # The whole path — MCP, the tool, the area, the database, the days — with only the internet
+    # stood in for: a downpour yesterday, so a later day is the best.
+    services = FakeWeb(
+        {
+            geocoding.NOMINATIM: [{"lat": "54.10", "lon": "22.93", "display_name": "Suwałki, województwo podlaskie, Polska"}],
+            **forest_services(
+                stands=[stand("pine", 22.93, 54.10)], weather=open_meteo(datetime.now(POLAND).date(), rain=30, rain_days_ago=1, soil=0.15)
+            ),
+        }
+    )
+    monkeypatch.setattr(tools, "get_json", services)
+    monkeypatch.setattr(db, "pool", pool)
+
+    result = rpc(client, "tools/call", {"name": "kiedy_na_grzyby", "arguments": {"miejscowosc": "Suwałki", "grzyby": ["podgrzybek"]}})
+
+    forecast = result["structuredContent"]
+    assert len(forecast["dni"]) == 6
+    assert forecast["najlepszy"] != forecast["dni"][0]["dzien"]  # not today: yesterday's rain has not acted yet
+    assert "**Najlepiej:" in result["content"][0]["text"]
