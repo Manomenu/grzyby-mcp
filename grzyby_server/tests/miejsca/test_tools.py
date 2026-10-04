@@ -11,7 +11,7 @@ from psycopg_pool import ConnectionPool
 from grzyby_server import db
 from grzyby_server.app import mcp_http
 from grzyby_server.miejsca import tools
-from grzyby_server.miejsca.model import Answer, Miejsce
+from grzyby_server.miejsca.model import Answer, Grzyb, Miejsce
 from grzyby_server.miejsca.search import Query
 from grzyby_server.miejsca.tools import MAP_HTML, MAP_URI
 
@@ -53,21 +53,31 @@ def test_the_tool_answers_in_text_and_as_data_for_the_map(
 
     def search(_conn: object, _get_json: object, query: Query, _now: object) -> Answer:
         asked.append(query)
-        return Answer(szukano_wokol="Suwałki", promien_km=query.promien_km, miejsca=[spot], uwagi=[], zrodla="BDL.")
+        return Answer(szukano_wokol="Suwałki", grzyby=["kurka"], promien_km=query.promien_km, miejsca=[spot], uwagi=[], zrodla="BDL.")
 
     monkeypatch.setattr(tools, "search", search)
     monkeypatch.setattr(db, "pool", pool)
 
-    result = rpc(client, "tools/call", {"name": "gdzie_na_grzyby", "arguments": {"miejscowosc": "Suwałki"}})
+    result = rpc(client, "tools/call", {"name": "gdzie_na_grzyby", "arguments": {"miejscowosc": "Suwałki", "grzyby": ["kurka"]}})
 
-    assert asked == [Query("Suwałki", 15, 3)]  # the defaults
+    assert asked == [Query("Suwałki", [Grzyb.KURKA], 15, 3)]  # the defaults
     assert result["structuredContent"]["miejsca"][0]["trasa"] == "https://maps.example"
     # The readable form for the chatbot and for clients without the map — not a JSON dump.
     assert "**Las sosnowy**" in result["content"][0]["text"]
 
 
-@pytest.mark.parametrize("arguments", [{"promien_km": 500}, {"ile_miejsc": 11}, {"ile_miejsc": 0}])
-def test_the_radius_and_the_number_of_spots_are_limited(client: TestClient, arguments: dict[str, int]) -> None:
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        {"grzyby": ["kurka"], "promien_km": 500},
+        {"grzyby": ["kurka"], "ile_miejsc": 11},
+        {"grzyby": ["kurka"], "ile_miejsc": 0},
+        {},  # no mushrooms: the chatbot has to ask the user first
+        {"grzyby": []},
+        {"grzyby": ["prawdziwek"]},  # not on the list
+    ],
+)
+def test_the_arguments_are_checked(client: TestClient, arguments: dict[str, object]) -> None:
     response = client.post(
         "/mcp",
         headers=HEADERS,

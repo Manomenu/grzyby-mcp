@@ -18,15 +18,20 @@ def pages(features: list[dict[str, Any]], offset_param: str, size_param: str) ->
     return answer
 
 
-# The benchmark areas (importer.BENCHMARK), each in its own RDLP: 15 km around them asks one
-# collection each.
+# The benchmark areas (importer.BENCHMARK): 15 km around each asks the collections of its RDLP —
+# one deep inside an RDLP, three where they meet.
 @pytest.mark.parametrize(
-    ("lat", "lon", "rdlp"),
-    [(54.10, 22.93, "Bialystok"), (51.14, 23.47, "Lublin"), (54.35, 18.65, "Gdansk")],
-    ids=["Suwałki", "Chełm", "Gdańsk"],
+    ("lat", "lon", "rdlps"),
+    [
+        (54.10, 22.93, {"Bialystok"}),
+        (51.14, 23.47, {"Lublin"}),
+        (54.35, 18.65, {"Gdansk"}),
+        (52.92, 21.30, {"Bialystok", "Olsztyn", "Warszawa"}),
+    ],
+    ids=["Suwałki", "Chełm", "Gdańsk", "Ponikiew Wielka"],
 )
-def test_a_tile_asks_the_collection_of_its_rdlp(lat: float, lon: float, rdlp: str) -> None:
-    assert {r for tile in tiles_around(lat, lon, 15_000) for r in sources.rdlps_for(tile.bbox)} == {rdlp}
+def test_the_tiles_of_a_place_ask_the_collections_of_its_rdlps(lat: float, lon: float, rdlps: set[str]) -> None:
+    assert {r for tile in tiles_around(lat, lon, 15_000) for r in sources.rdlps_for(tile.bbox)} == rdlps
 
 
 def test_a_tile_on_a_border_asks_both_collections() -> None:

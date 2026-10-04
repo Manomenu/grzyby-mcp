@@ -1,8 +1,64 @@
+from enum import IntEnum, StrEnum
+from typing import Annotated
 from urllib.parse import urlencode
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from grzyby_server.lasy.model import ObszarKind
+
+
+class Grzyb(StrEnum):
+    """The mushrooms the tool knows (their profiles: grzyby.py). Values are what the chatbot sends."""
+
+    BOROWIK = "borowik"
+    PODGRZYBEK = "podgrzybek"
+    KURKA = "kurka"
+    KOZLARZ = "kozlarz"
+    MASLAK = "maslak"
+    RYDZ = "rydz"
+
+
+class Miesiac(IntEnum):
+    """A month, numbered as datetime numbers it, so `Miesiac(now.month)` is this one."""
+
+    STYCZEN = 1
+    LUTY = 2
+    MARZEC = 3
+    KWIECIEN = 4
+    MAJ = 5
+    CZERWIEC = 6
+    LIPIEC = 7
+    SIERPIEN = 8
+    WRZESIEN = 9
+    PAZDZIERNIK = 10
+    LISTOPAD = 11
+    GRUDZIEN = 12
+
+    @property
+    def nazwa(self) -> str:
+        return NAZWY_MIESIECY[self - 1]
+
+
+NAZWY_MIESIECY = (
+    "styczeń", "luty", "marzec", "kwiecień", "maj", "czerwiec",
+    "lipiec", "sierpień", "wrzesień", "październik", "listopad", "grudzień",
+)  # fmt: skip
+
+Czynnik = Annotated[float, Field(ge=0, le=1)]
+
+
+class ProfilGrzyba(BaseModel):
+    """Where and when one mushroom grows, as factors from 0 (never) to 1 (its favourite) — the
+    data of the score (scoring.py), and of the map's explanations."""
+
+    model_config = ConfigDict(frozen=True)
+
+    nazwa: str = Field(description="np. „koźlarz”")
+    dopelniacz: str = Field(description="np. „koźlarza” — „dobrze dla koźlarza”")
+    drzewa: dict[str, Czynnik] = Field(description="Kod gatunku panującego w BDL → czynnik; brak = drzewo nie dla niego")
+    siedliska: dict[str, Czynnik] = Field(description="Grupa siedlisk (grzyby.GRUPY_SIEDLISK) → czynnik")
+    wiek: tuple[Czynnik, Czynnik, Czynnik, Czynnik] = Field(description="Czynnik dla każdej klasy wieku (grzyby.KLASY_WIEKU)")
+    sezon: dict[Miesiac, Czynnik] = Field(description="Miesiąc → czynnik; miesiąca, którego nie ma, grzyb nie rośnie")
 
 
 class Miejsce(BaseModel):
@@ -22,7 +78,7 @@ class Drzewostany(BaseModel):
     (docs/mcp-apps.md)."""
 
     ksztalt: list[list[list[str]]] = Field(description="Wielokąty z pierścieni, każdy pierścień jako encoded polyline")
-    wynik: list[int] = Field(description="Ocena od 0 do 100")
+    wynik: dict[Grzyb, list[int]] = Field(description="Ocena od 0 do 100 dla każdego wybranego grzyba")
     gatunek: list[str | None]
     siedlisko: list[str | None]
     wiek: list[int]
@@ -35,14 +91,15 @@ class ObszarNaMapie(BaseModel):
 
 
 class Reguly(BaseModel):
-    """The scoring tables (scoring.py) as they are, so the map explains a stand with the same
-    words and numbers the score came from."""
+    """The tables of the score (grzyby.py) as they are, so the map explains a stand with the same
+    words and numbers its score came from."""
 
-    gatunki: dict[str, tuple[float, str, str]] = Field(description="kod → (czynnik, przymiotnik, dlaczego)")
-    inny_gatunek: tuple[float, str, str]
-    siedliska: dict[str, tuple[float, str]] = Field(description="kod → (czynnik, dlaczego)")
-    nieznane_siedlisko: tuple[float, str]
-    wiek: list[tuple[int | None, float, str]] = Field(description="(poniżej lat, czynnik, dlaczego), ostatnia klasa bez górnej granicy")
+    drzewa: dict[str, tuple[str, str]] = Field(description="Kod gatunku → (nazwa, przymiotnik)")
+    siedliska: dict[str, tuple[str, str]] = Field(description="Kod typu siedliska → (grupa, opis)")
+    grupy_siedlisk: dict[str, str] = Field(description="Grupa → nazwa")
+    klasy_wieku: list[tuple[int | None, str]] = Field(description="(poniżej lat, nazwa); ostatnia bez górnej granicy")
+    grzyby: dict[Grzyb, ProfilGrzyba] = Field(description="Profile wybranych grzybów")
+    miesiac: Miesiac = Field(description="Miesiąc, dla którego liczono ocenę")
 
 
 class Mapa(BaseModel):
@@ -61,8 +118,15 @@ class Answer(BaseModel):
     """What the tool returns: the spots, plus where the data comes from (CC BY 4.0 requires it)."""
 
     szukano_wokol: str | None = Field(description="Miejscowość, wokół której szukano — pełna nazwa z mapy, do sprawdzenia")
+    grzyby: list[str] = Field(description="Szukane grzyby, po polsku")
     promien_km: int
-    miejsca: list[Miejsce]
+    miejsca: list[Miejsce] = Field(
+        description="Najlepsze miejsca na wszystkie szukane grzyby naraz (średnia ich ocen); przy jednym grzybie — na niego"
+    )
+    miejsca_na_grzyb: dict[Grzyb, list[Miejsce]] = Field(
+        default_factory=dict[Grzyb, list[Miejsce]],
+        description="Przy kilku grzybach: najlepsze miejsca na każdy z osobna — zwykle inne niż wspólne",
+    )
     uwagi: list[str] = Field(description="Ostrzeżenia dla użytkownika: brak danych, nieaktualne zakazy wstępu itp.")
     zrodla: str
     mapa: Mapa | None = None
@@ -70,8 +134,21 @@ class Answer(BaseModel):
 
 def as_text(answer: Answer) -> str:
     """The answer as text (Markdown): what the chatbot reads, and all a client without the map shows."""
-    head = [f"Lasy w promieniu {answer.promien_km} km od: {answer.szukano_wokol}."] if answer.szukano_wokol else []
-    lines = [f"**{m.nazwa}** — {m.dlaczego} [Trasa w Google Maps]({m.trasa})" for m in answer.miejsca]
+    head = (
+        [f"Lasy w promieniu {answer.promien_km} km od: {answer.szukano_wokol} — na: {', '.join(answer.grzyby)}."]
+        if answer.szukano_wokol
+        else []
+    )
+
+    def spots(miejsca: list[Miejsce]) -> list[str]:
+        return [f"**{m.nazwa}** — {m.dlaczego} [Trasa w Google Maps]({m.trasa})" for m in miejsca]
+
+    lines = spots(answer.miejsca)
+    if answer.miejsca_na_grzyb:
+        lines = ["### Na wszystkie naraz (średnia ocen)", *lines]
+        # Answer.grzyby holds the Polish names in the order the spots are keyed in (search.py).
+        for name, miejsca in zip(answer.grzyby, answer.miejsca_na_grzyb.values(), strict=True):
+            lines += [f"### Na: {name}", *(spots(miejsca) or ["(brak miejsc)"])]
     notes = [f"**Uwaga:** {uwaga}" for uwaga in answer.uwagi]
     return "\n\n".join([*head, *lines, *notes, f"_{answer.zrodla}_"])
 

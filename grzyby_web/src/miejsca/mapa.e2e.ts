@@ -20,8 +20,13 @@ const MCP = "http://localhost:6211/mcp";
 const HOST = "https://host.test/";
 const WIDGET = "https://widget.test/mapa.html";
 
+interface Spot {
+    nazwa: string;
+    trasa: string;
+}
 interface Answer {
-    miejsca: { nazwa: string; trasa: string }[];
+    miejsca: Spot[];
+    miejsca_na_grzyb: Record<string, Spot[]>;
 }
 interface HostRecord {
     links: string[];
@@ -158,6 +163,18 @@ test("the map widget draws the answer under the host's CSP and talks to the host
     await resize("100%");
     await expect.poll(() => circleFillsTheMap(widget)).toBe(true);
 
+    // The mushrooms asked about, as buttons: all of them (their average) by default, or each on
+    // its own — with its own numbered spots, so the list under the map changes with the view.
+    const mushrooms = widget.getByRole("group", { name: "Grzyb", exact: true });
+    const list = widget.locator("#list li b");
+    await expect(mushrooms.getByRole("button", { name: "wszystkie", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await expect(list).toHaveText(answer.miejsca.map((m) => m.nazwa));
+    const maslak = mushrooms.getByRole("button", { name: "maślak", exact: true });
+    await maslak.click();
+    await expect(maslak).toHaveAttribute("aria-pressed", "true");
+    await expect(list).toHaveText((answer.miejsca_na_grzyb["maslak"] ?? []).map((m) => m.nazwa));
+    await mushrooms.getByRole("button", { name: "wszystkie", exact: true }).click();
+
     // Map modes: the legend follows the pressed button. On a phone the legend starts folded, so
     // as not to cover the map — open it first.
     if ((await widget.locator("details.legend").getAttribute("open")) === null) {
@@ -174,7 +191,8 @@ test("the map widget draws the answer under the host's CSP and talks to the host
     const first = await widget.locator(".spot-number").first().boundingBox();
     if (!first) throw new Error("spot 1 has no position");
     await page.mouse.click(first.x + first.width / 2, first.y + first.height + 12);
-    await expect(widget.locator(".popup")).toContainText("Las sosnowy — bardzo dobry");
+    await expect(widget.locator(".popup")).toContainText("Las sosnowy");
+    await expect(widget.locator(".popup")).toContainText("borowik: bardzo dobry (88/100)");
     await expect(widget.locator(".popup")).toContainText("Siedlisko: BMŚW");
 
     // Routes open through the host: the sandbox allows no new windows.
