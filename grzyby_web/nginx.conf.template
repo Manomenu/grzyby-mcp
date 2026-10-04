@@ -46,6 +46,13 @@ server {
         proxy_buffering off;
     }
 
+    # Nothing here is a .well-known document. Without this the SPA fallback below answers every
+    # path with index.html (200), and an MCP client probing for OAuth metadata takes the HTML
+    # for a broken login server.
+    location ^~ /.well-known/ {
+        return 404;
+    }
+
     # Vite emits content-hashed filenames, so these can never go stale.
     location /assets/ {
         add_header cache-control "public, max-age=31536000, immutable";

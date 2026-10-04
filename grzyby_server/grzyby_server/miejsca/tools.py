@@ -6,11 +6,13 @@ o Lasach sample.
 """
 
 from pathlib import Path
+from typing import Annotated
 
 from mcp.server.apps import Apps, ResourceCsp
 from mcp.server.mcpserver import MCPServer
+from mcp_types import CallToolResult, TextContent
 
-from grzyby_server.miejsca.model import Miejsce, Odpowiedz, trasa
+from grzyby_server.miejsca.model import Miejsce, Odpowiedz, opis, trasa
 
 MAP_URI = "ui://grzyby/mapa.html"
 SOURCES = "Drzewostany: Bank Danych o Lasach (bdl.lasy.gov.pl), stan na 2026, licencja CC BY 4.0."
@@ -27,9 +29,17 @@ apps = Apps()
         "z uzasadnieniem i linkiem do trasy. Na razie działa tylko dla okolic Suwałk."
     ),
 )
-def gdzie_na_grzyby(miejscowosc: str, promien_km: int = 15) -> Odpowiedz:
-    """Spots near `miejscowosc` within `promien_km`. Hello world: always the same stand."""
+def gdzie_na_grzyby(miejscowosc: str, promien_km: int = 15) -> Annotated[CallToolResult, Odpowiedz]:
+    """Spots near `miejscowosc` within `promien_km`. Hello world: always the same stand.
+
+    Two forms of one answer: readable text (the chatbot quotes it; a client without the map shows
+    only it) and the data the map draws (structuredContent, schema = Odpowiedz)."""
     _ = (miejscowosc, promien_km)
+    odpowiedz = _hello_world()
+    return CallToolResult(content=[TextContent(type="text", text=opis(odpowiedz))], structured_content=odpowiedz.model_dump(mode="json"))
+
+
+def _hello_world() -> Odpowiedz:
     lat, lon = 54.051247, 22.965699
     return Odpowiedz(
         miejsca=[
@@ -53,12 +63,10 @@ apps.add_html_resource(
     MAP_URI,
     (Path(__file__).with_name("mapa.html")).read_text(encoding="utf-8"),
     title="Mapa miejsc na grzyby",
-    # The widget loads its map library and tiles from these hosts; the host's sandbox blocks
-    # everything else.
-    csp=ResourceCsp(
-        resource_domains=["https://unpkg.com", "https://tiles.openfreemap.org"],
-        connect_domains=["https://tiles.openfreemap.org"],
-    ),
+    # The widget loads Leaflet and raster tiles from these hosts; the host's sandbox blocks
+    # everything else — including blob: workers, which is why the map is Leaflet (plain images)
+    # and not a WebGL library.
+    csp=ResourceCsp(resource_domains=["https://unpkg.com", "https://tile.openstreetmap.org"]),
     prefers_border=True,
 )
 
