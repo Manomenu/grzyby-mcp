@@ -272,6 +272,11 @@ template's one feature and shows the pattern end to end: `api.ts` → `status.ts
 - **Browser tests** (`<name>.e2e.ts` beside the code) find elements by role and visible text,
   use `exact: true` (a substring match passes on the wrong text), create their own data and
   never depend on another test's. They test what a user relies on, not every button.
+- **Laptop and phone, both.** Every browser test runs twice — the `laptop` project (1440×900)
+  and the `phone` project (Galaxy S24: 360×780, touch, the size of a Samsung S21 FE) in
+  `e2e/playwright.config.ts`. A screen is done when it works on both: nothing cut off or out of
+  reach on the phone, no space wasted on the laptop. A test that only makes sense on one size
+  says so with `test.skip(...)` and a reason, never by leaving the other project out.
 - **Dependencies:** Mantine's packages come in only when used (`@mantine/dates` with the
   first date field, `@mantine/notifications` with the first notification), each in the same
   change as its provider and stylesheet in `main.tsx`.

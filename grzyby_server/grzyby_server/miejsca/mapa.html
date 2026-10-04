@@ -68,6 +68,10 @@
                 line-height: 1.5;
                 max-width: 220px;
             }
+            .legend summary {
+                cursor: pointer;
+                font-weight: 600;
+            }
             .legend i {
                 display: inline-block;
                 width: 12px;
@@ -169,8 +173,9 @@
             const INNE_SIEDLISKO = "#9e9e9e";
 
             // ── the map ───────────────────────────────────────────────────────────────────
-            // Canvas, not SVG: two thousand polygons stay smooth.
-            const map = L.map("map", { preferCanvas: true }).setView([54.1, 22.93], 10);
+            // Canvas, not SVG: two thousand polygons stay smooth. Quarter zoom steps, so the search
+            // circle can fill the map instead of leaving the margin a whole step would.
+            const map = L.map("map", { preferCanvas: true, zoomSnap: 0.25 }).setView([54.1, 22.93], 10);
             // OpenStreetMap's own tiles: no key, attribution required. Fine for a hobby's traffic;
             // their usage policy rules out heavy use — a busier map gets its own tile source.
             L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -178,13 +183,30 @@
                 attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
             }).addTo(map);
             const layers = L.layerGroup().addTo(map);
+            // A legend that folds: on a phone, open, it would cover half the map. It starts open only
+            // where there is room; a tap on "Legenda" opens or closes it.
             const legend = L.control({ position: "bottomleft" });
-            legend.onAdd = () => L.DomUtil.create("div", "legend");
+            legend.onAdd = () => {
+                const box = L.DomUtil.create("details", "legend");
+                box.open = !window.matchMedia("(max-width: 480px)").matches;
+                L.DomEvent.disableClickPropagation(box);
+                return box;
+            };
             legend.addTo(map);
 
             let answer = null;
             let mode = "wynik";
             let stands = [];
+            // The whole search circle is the first view — and stays so when the host resizes the
+            // widget (it may start small and grow, or go full screen) until the user moves the map.
+            let circleBounds = null;
+            let moved = false;
+            const fitCircle = () => circleBounds && map.fitBounds(circleBounds, { padding: [8, 8] });
+            for (const type of ["pointerdown", "wheel", "keydown"]) map.getContainer().addEventListener(type, () => (moved = true));
+            new ResizeObserver(() => {
+                map.invalidateSize();
+                if (!moved) fitCircle();
+            }).observe(map.getContainer());
 
             // Google's encoded polyline → [[lat, lon], …] (the server encodes with PostGIS).
             function decode(encoded) {
@@ -256,7 +278,9 @@
                 // BDL describes the State Forests only; private and municipal woods are blank.
                 rows.push([null, "tylko lasy państwowe (BDL)"]);
                 const box = legend.getContainer();
-                box.replaceChildren();
+                const summary = document.createElement("summary");
+                summary.textContent = "Legenda";
+                box.replaceChildren(summary);
                 for (const [color, label] of rows) {
                     const line = document.createElement("div");
                     if (color) {
@@ -317,8 +341,10 @@
                 stands = [];
                 const bounds = L.latLngBounds([]);
                 const m = answer.mapa;
+                circleBounds = null;
                 if (m) {
                     const center = [m.lat, m.lon];
+                    // SVG, unlike the stands: one element, which the browser test can measure.
                     L.circle(center, {
                         radius: answer.promien_km * 1000,
                         color: "#6b3e26",
@@ -326,14 +352,16 @@
                         dashArray: "4 6",
                         fill: false,
                         interactive: false,
+                        className: "search-radius",
+                        renderer: L.svg(),
                     }).addTo(layers);
+                    circleBounds = L.latLng(center).toBounds(answer.promien_km * 2000);
                     m.drzewostany.ksztalt.forEach((shape, i) => {
                         // A faint outline: a thousand dark borders would turn the forest into a grid.
                         const polygon = L.polygon(outline(shape), { weight: 0.4, color: "#000", opacity: 0.25, fillOpacity: 0.8 });
                         polygon.bindPopup(() => popupFor(i, polygon));
                         polygon.addTo(layers);
                         stands.push(polygon);
-                        bounds.extend(polygon.getBounds());
                     });
                     // Above the stands, so their grey and their name win.
                     for (const area of m.obszary) {
@@ -352,9 +380,9 @@
                         .addTo(layers);
                     bounds.extend([spot.lat, spot.lon]);
                 });
-                // The forests and the spots, not the whole circle: much of it may have no forest data.
-                if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
-                else if (m) map.fitBounds(L.latLng(m.lat, m.lon).toBounds(answer.promien_km * 2000));
+                moved = false;
+                if (circleBounds) fitCircle();
+                else if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
                 if (m) paint();
 
                 const list = document.getElementById("list");

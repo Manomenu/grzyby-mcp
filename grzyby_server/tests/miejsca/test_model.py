@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from grzyby_server.miejsca.model import Answer, Miejsce, as_text, route_url
@@ -20,3 +22,12 @@ def test_the_text_names_the_place_then_the_spots_then_the_notes_and_sources() ->
         "**Uwaga:** zakazy nieaktualne",
         "_BDL._",
     ]
+
+
+def test_the_widget_tests_answer_is_still_a_valid_answer() -> None:
+    # grzyby_web/src/miejsca/mapa.e2e.ts feeds the map widget this file; it must keep up with the
+    # model, or the browser test would check the widget against data the server no longer sends.
+    fixture = Path(__file__).parents[3] / "grzyby_web" / "src" / "miejsca" / "mapa.answer.json"
+    data = json.loads(fixture.read_text(encoding="utf-8"))
+
+    assert Answer.model_validate(data).model_dump(mode="json") == data
