@@ -142,13 +142,23 @@ ochrona jest w aplikacji, przy tym, co kosztuje.
 
 Zabezpieczenia w aplikacji (to repo):
 
-- [ ] **Dzienny limit nowych kwadratów** dla całego serwisu (propozycja: 300 dziennie) — nowa
-      okolica to ~15 s i ~16 kwadratów z BDL; po przekroczeniu nowa okolica dostaje uwagę
-      „spróbuj jutro”, znane działają dalej. Chroni BDL i bazę przed ściąganiem pół Polski.
-- [ ] **Kolejka do Nominatim: 1 zapytanie na sekundę** dla całego serwera (zasady Nominatim;
-      cache w bazie już jest). Przy większym ruchu — własna instancja albo inne geokodowanie.
-- [ ] **Cache gotowych odpowiedzi** dla tej samej miejscowości, listy grzybów, promienia
-      i liczby miejsc (propozycja: godzina) — te same pytania nie liczą się w kółko.
+- [x] **Dzienny limit nowych kwadratów** dla całego serwisu: 300 w ciągu ostatnich 24 godzin
+      (`lasy/tiles.py`, 4.10.2026). Dla skali: cztery okolice wzorcowe to 53 kwadraty przy 15 km
+      i 176 przy największym promieniu (30 km). Okolica wchodzi cała albo wcale; po przekroczeniu
+      nowa okolica dostaje uwagę „spróbuj jutro”, znane działają dalej; miesięczne odświeżanie
+      się nie liczy. Limit miękki — pytania o nowe okolice w tej samej chwili nie widzą się nawzajem.
+- [x] **Kolejka do Nominatim: 1 zapytanie na sekundę** dla całego serwera (`miejsca/geocoding.py`,
+      w procesie — wystarcza przy jednej replice). Przy większym ruchu — własna instancja albo
+      inne geokodowanie.
+- [x] **Cache gotowych odpowiedzi** na godzinę (`miejsca/cache.py`, w bazie, nie w pamięci): ta sama
+      miejscowość, lista grzybów, promień, liczba miejsc i dzień. Tylko pełne odpowiedzi — z uwagą
+      o niedziałającej usłudze nie są zapamiętywane.
+- [x] **Najwyżej 5 nowych okolic pobieranych naraz** (`tiles.AREAS_AT_ONCE`); szósta dostaje uwagę
+      „spróbuj za minutę”, znane okolice działają dalej.
+- [ ] **Zmierzyć pamięć przy pobieraniu nowych okolic naraz i wybrać 3–5** — skok zużycia RAM
+      serwera nie powinien przekroczyć ~200 MB (limit poda 384 Mi). Uwaga: pula połączeń do bazy
+      (`db.py`) też ma 5, a każde pobierające zapytanie trzyma połączenie przez cały czas — przy
+      5 pobraniach naraz inne zapytania czekają na połączenie; to argument za 3 albo za większą pulą.
 - [ ] **Open-Meteo** — dziś cache 3 h na kwadrat; przy umiarkowanym ruchu mieści się w darmowym
       limicie (~10 tys. zapytań dziennie), przy dużym — dłuższy cache albo płatny plan.
 
@@ -175,7 +185,7 @@ Formalności i dane:
 - [ ] **Prywatność** — nie zbieramy danych osobowych (w logach nginx adresy IP serwerów Anthropic
       i OpenAI, w bazie nazwy miejscowości); krótka notka na stronie.
 - [ ] **MCP Apps w ChatGPT** — czy pokazuje mapkę (bez klucza odpada pytanie o nagłówek).
-- [ ] **Kolejność** (propozycja): zabezpieczenia w aplikacji → licencja GDOŚ i przypisanie →
+- [ ] **Kolejność** (propozycja): zabezpieczenia w aplikacji (zrobione poza pomiarem 3–5) → licencja GDOŚ i przypisanie →
       reguła Cloudflare i zdjęcie klucza → mail do BDL (właściciel) → strona z instrukcją.
 
 ## Później / może
