@@ -12,6 +12,7 @@ from grzyby_server import db
 from grzyby_server.app import mcp_http
 from grzyby_server.miejsca import tools
 from grzyby_server.miejsca.model import Answer, Miejsce
+from grzyby_server.miejsca.search import Query
 from grzyby_server.miejsca.tools import MAP_HTML, MAP_URI
 
 # Streamable HTTP: the client accepts both, the server answers with JSON (json_response=True).
@@ -48,24 +49,25 @@ def test_the_tool_answers_in_text_and_as_data_for_the_map(
 ) -> None:
     # The search has tests of its own (test_search.py); here only what MCP makes of its answer.
     spot = Miejsce(nazwa="Las sosnowy", lat=54.1, lon=22.9, dlaczego="sosna.", trasa="https://maps.example", adres_lesny="a")
-    asked: list[tuple[str, int]] = []
+    asked: list[Query] = []
 
-    def search(_conn: object, _get_json: object, miejscowosc: str, promien_km: int, _now: object) -> Answer:
-        asked.append((miejscowosc, promien_km))
-        return Answer(szukano_wokol="Suwałki", promien_km=promien_km, miejsca=[spot], uwagi=[], zrodla="BDL.")
+    def search(_conn: object, _get_json: object, query: Query, _now: object) -> Answer:
+        asked.append(query)
+        return Answer(szukano_wokol="Suwałki", promien_km=query.promien_km, miejsca=[spot], uwagi=[], zrodla="BDL.")
 
     monkeypatch.setattr(tools, "search", search)
     monkeypatch.setattr(db, "pool", pool)
 
     result = rpc(client, "tools/call", {"name": "gdzie_na_grzyby", "arguments": {"miejscowosc": "Suwałki"}})
 
-    assert asked == [("Suwałki", 15)]
+    assert asked == [Query("Suwałki", 15, 3)]  # the defaults
     assert result["structuredContent"]["miejsca"][0]["trasa"] == "https://maps.example"
     # The readable form for the chatbot and for clients without the map — not a JSON dump.
     assert "**Las sosnowy**" in result["content"][0]["text"]
 
 
-def test_the_radius_is_limited(client: TestClient) -> None:
+@pytest.mark.parametrize("arguments", [{"promien_km": 500}, {"ile_miejsc": 11}, {"ile_miejsc": 0}])
+def test_the_radius_and_the_number_of_spots_are_limited(client: TestClient, arguments: dict[str, int]) -> None:
     response = client.post(
         "/mcp",
         headers=HEADERS,
@@ -73,7 +75,7 @@ def test_the_radius_is_limited(client: TestClient) -> None:
             "jsonrpc": "2.0",
             "id": 1,
             "method": "tools/call",
-            "params": {"name": "gdzie_na_grzyby", "arguments": {"miejscowosc": "Suwałki", "promien_km": 500}},
+            "params": {"name": "gdzie_na_grzyby", "arguments": {"miejscowosc": "Suwałki", **arguments}},
         },
     )
 
