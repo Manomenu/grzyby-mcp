@@ -42,13 +42,30 @@ just secrets backup  # kopia lokalnych plików .env w Bitwardenie (restore na no
 
 ## Podłączenie do chatbota
 
-Lokalnie, przy działającym `just server` (albo `just up` → port 8091):
+Serwer działa pod **`https://grzyby.gugnowski.com/mcp`** i wymaga klucza. Klucz jest w
+Bitwardenie (notatka `suwalski-platform/.secrets/grzyby.env`, wartość `MCP_KEY`); nigdy nie
+wklejaj go do repo ani do zgłoszeń.
+
+**Claude (claude.ai, aplikacja na komputer i telefon):**
+
+1. Ustawienia → **Konektory** (Connectors) → **Dodaj własny konektor** (Add custom connector).
+2. Nazwa: `Grzyby`, adres: `https://grzyby.gugnowski.com/mcp?key=<MCP_KEY>`.
+3. Zapisz; w nowej rozmowie włącz konektor (ikona narzędzi pod polem wiadomości) i zapytaj np.
+   „Gdzie teraz na grzyby koło Suwałk?” — odpowiedź przyjdzie z mapką.
+
+Klucz w adresie jest celowo: konektor nie umie wysłać własnego nagłówka. Kto ma adres, ma dostęp
+— zmiana klucza (`scripts/projects/grzyby/setup.sh` w suwalski-platform) unieważnia stary.
+
+**Claude Code** (klucz w nagłówku, nie w adresie):
 
 ```sh
-claude mcp add --transport http grzyby http://localhost:6210/mcp   # Claude Code
+claude mcp add --transport http grzyby https://grzyby.gugnowski.com/mcp --header "Authorization: Bearer <MCP_KEY>"
 ```
 
-W Claude (web/desktop) i ChatGPT jako własny konektor — wymaga publicznego adresu (`/mcp` na
-klastrze, przez tunel Cloudflare); mapka wyświetla się tylko tam, Claude Code pokazuje tekst.
+**Lokalnie** (`just server`, bez klucza):
+
+```sh
+claude mcp add --transport http grzyby-local http://localhost:6210/mcp
+```
 
 Jak repo jest zorganizowane i co musi przynieść każda zmiana: [AGENTS.md](AGENTS.md).

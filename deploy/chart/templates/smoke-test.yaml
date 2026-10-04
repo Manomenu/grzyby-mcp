@@ -37,6 +37,14 @@ spec:
           env:
             - name: WEB
               value: {{ $web | quote }}
+            {{- with .Values.server.mcpKeySecret }}
+            # The same key a chatbot sends; without it /mcp answers 401.
+            - name: MCP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: MCP_KEY
+            {{- end }}
           command:
             - sh
             - -c
@@ -63,6 +71,7 @@ spec:
               # MCP: lista narzędzi przez web, tak jak zawoła chatbot.
               got="$(curl -s -o /tmp/body -w '%{http_code}' -X POST "$WEB/mcp" \
                 -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' \
+                -H "authorization: Bearer ${MCP_KEY:-}" \
                 -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}')"
               if [ "$got" = 200 ] && grep -q gdzie_na_grzyby /tmp/body; then echo "ok    200 /mcp tools/list"; else echo "FAIL  /mcp tools/list: got $got"; head -c 300 /tmp/body; echo; failed=1; fi
               exit "$failed"

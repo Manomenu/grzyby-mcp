@@ -6,8 +6,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import BaseModel
+from starlette.routing import Route
 
 from grzyby_server import db
+from grzyby_server.mcp_key import RequireKey
 from grzyby_server.miejsca.tools import server as mcp
 from grzyby_server.settings import settings
 
@@ -60,6 +62,9 @@ mcp_http = mcp.streamable_http_app(
     json_response=True,
     transport_security=TransportSecuritySettings(allowed_hosts=settings.mcp_allowed_hosts),
 )
-app.router.routes.extend(mcp_http.routes)
+# Every route of the MCP app (one: /mcp) behind the key.
+app.router.routes.extend(
+    Route(route.path, endpoint=RequireKey(route.app, settings.mcp_key)) if isinstance(route, Route) else route for route in mcp_http.routes
+)
 
 # Features add their routers here: app.include_router(notes) — and a layer in pyproject.toml.

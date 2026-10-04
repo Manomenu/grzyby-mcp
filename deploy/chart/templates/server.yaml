@@ -33,10 +33,12 @@ spec:
               value: {{ .Values.server.port | quote }}
             - name: MCP_ALLOWED_HOSTS
               value: {{ concat (list .Values.ingress.host (printf "%s-web" (include "app.name" .))) .Values.server.mcpHosts | toJson | quote }}
-          {{- with .Values.server.databaseSecret }}
+          {{- if or .Values.server.databaseSecret .Values.server.mcpKeySecret }}
           envFrom:
+            {{- range compact (list .Values.server.databaseSecret .Values.server.mcpKeySecret) }}
             - secretRef:
                 name: {{ . }}
+            {{- end }}
           {{- end }}
           # /health nie dotyka niczego poza procesem, więc nadaje się na sondę.
           readinessProbe:
