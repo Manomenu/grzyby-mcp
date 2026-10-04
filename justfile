@@ -41,6 +41,11 @@ api-types:
 import:
     cd grzyby_server && env -u VIRTUAL_ENV uv run python -m grzyby_server.lasy.importer
 
+# What to type into Claude's "Add custom connector" for the production /mcp (prints the key)
+[group('dev')]
+claude-connector:
+    @./scripts/.internal/claude-connector.sh
+
 # ---------------------------------------------------------------------------------------
 # infra — the containerised stack: the same images the cluster runs, wired the same way
 # ---------------------------------------------------------------------------------------

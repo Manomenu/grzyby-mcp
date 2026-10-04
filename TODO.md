@@ -50,8 +50,24 @@ sprawdzimy licencji danych.
       (`miejsca/geocoding.py`).
 - [x] Testy: wzór punktowy, import, zakazy, geokodowanie i wyszukiwanie na prawdziwym
       PostgreSQL, z udawanymi odpowiedziami usług (`tests/fake_web.py`).
-- [ ] Widżet rysuje wielokąty drzewostanów, nie tylko znaczniki (wymaga geometrii
-      w odpowiedzi — pilnować limitu ~150 000 znaków, `docs/mcp-apps.md`).
+- [x] **Mapa z plamami i trybami**: widżet koloruje wszystkie drzewostany w promieniu według
+      oceny, z przyciskami trybów (wynik / drzewa / wiek / siedlisko), szarymi obszarami, gdzie
+      nie wolno, okienkiem z rozbiciem oceny i pełnym ekranem, gdy host go oferuje. Kształty
+      w zwięzłym kodowaniu (polyline), budżet ~120 000 znaków (`miejsca/map_data.py`) — przy
+      większym promieniu odpadają najsłabsze drzewostany. **Zostaje:** obejrzeć w Claude
+      (wielkość, telefon, czy pełny ekran działa).
+- [ ] **Lasy niepaństwowe** — BDL opisuje tylko Lasy Państwowe; prywatne i gminne lasy są na
+      mapie puste (np. na północ od Suwałk). Sprawdzić, czy BDL ma je w innej kolekcji
+      (uproszczone plany urządzenia lasu).
+- [ ] **Gdy dane mapy przestaną się mieścić** (województwo, kraj) — pomysły, od najlepszego:
+      1. widżet sam dociąga dane narzędziem widocznym tylko dla niego (`visibility: ["app"]`
+         w specyfikacji MCP Apps) — bez chatbota i bez tokenów, w kawałkach według obszaru
+         lub przybliżenia (np. kafelki wektorowe z PostGIS, `ST_AsMVT`);
+      2. pierwsza odpowiedź daje ocenę ogólną i listę dostępnych widoków, a o konkretny widok
+         użytkownik prosi chatbota (kolejne wywołanie narzędzia z parametrem widoku). Uwaga:
+         każdy widok i tak niesie wszystkie kształty (~70 % danych), więc oszczędza mało,
+         a przełączanie przez czat trwa sekundy zamiast kliknięcia. Za to dobre dla klientów
+         bez widżetu (Claude Code): tekst wymienia widoki, użytkownik prosi o opis wybranego.
 
 ## 2. Sprawdzian w terenie
 
@@ -89,7 +105,9 @@ Dopóki adresu używa tylko właściciel — nie blokuje. Zanim adres trafi do i
 - [ ] Gatunki grzybów: borowik / podgrzybek / kurka — każdy z własnymi drzewami i progiem.
 - [ ] Zgłoszenia „byłem, były / nie było” od użytkowników — jedyna droga do sprawdzania trafności.
 - [ ] Rozszerzenie z okolicy pilotażowej na województwo / kraj.
-- [ ] **Test widżetu mapy w przeglądarce** — gdy debugowanie widżetu zacznie zabierać czas
+- [ ] **Test widżetu mapy w przeglądarce** (szkic istnieje: przy mapie z plamami widżet był
+      oglądany przez udawanego hosta — strona z iframe, która odpowiada na `ui/initialize` i wysyła
+      `ui/notifications/tool-result` — plus serwer podający `mapa.html` z CSP) — gdy debugowanie widżetu zacznie zabierać czas
       (np. przy rysowaniu wielokątów drzewostanów): test Playwright, który podaje `mapa.html`
       z nagłówkiem CSP jak w piaskownicy Claude (`docs/mcp-apps.md`, punkt 2), wstrzykuje
       przykładowy wynik narzędzia jak host i sprawdza, że rysują się kształty i kafelki,

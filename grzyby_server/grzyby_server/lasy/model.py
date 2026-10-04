@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import StrEnum
 
 
 @dataclass(frozen=True)
@@ -16,3 +17,22 @@ class Wydzielenie:
     lat: float
     lon: float
     distance_m: float
+    # The outline for the map: polygons of rings, each ring an encoded polyline (store.SHAPE).
+    shape: list[list[str]]
+
+
+class ObszarKind(StrEnum):
+    """Why an area may not be entered. The values are what the database and the map use."""
+
+    PARK_NARODOWY = "park_narodowy"
+    REZERWAT = "rezerwat"
+    ZAKAZ_WSTEPU = "zakaz_wstepu"
+
+
+@dataclass(frozen=True)
+class Obszar:
+    """An area one may not enter, for the map: a national park, a reserve, an entry ban."""
+
+    kind: ObszarKind
+    name: str
+    shape: list[list[str]]

@@ -3,10 +3,11 @@ from datetime import UTC, datetime
 from psycopg import Connection
 
 from grzyby_server.lasy import sources, store
+from grzyby_server.lasy.model import ObszarKind
 from grzyby_server.miejsca import geocoding
 from grzyby_server.miejsca.model import route_url
 from grzyby_server.miejsca.search import search
-from tests.fake_web import Answer, FakeWeb, stand
+from tests.fake_web import Answer, FakeWeb, area, stand
 
 NOW = datetime(2026, 10, 4, 10, 0, tzinfo=UTC)
 LAT, LON = 54.10, 22.93
@@ -38,6 +39,18 @@ def test_the_best_stands_around_the_place_come_with_reasons_routes_and_attributi
     assert answer.uwagi == []
     assert "stan na 2026 r." in answer.zrodla
     assert "sprawdzone 04.10.2026 12:00" in answer.zrodla  # Polish time, not UTC
+    # The map has every stand around, including those not picked.
+    assert answer.mapa is not None
+    assert len(answer.mapa.drzewostany.wynik) == 3
+
+
+def test_the_map_greys_out_what_one_may_not_enter(conn: Connection) -> None:
+    store.replace_obszary(conn, ObszarKind.REZERWAT, [area("Ostoja bobrów Marycha", LON + 0.01, LAT)])
+
+    answer = search(conn, web(), "Suwałki", 15, NOW)
+
+    assert answer.mapa is not None
+    assert [o.nazwa for o in answer.mapa.obszary] == ["Ostoja bobrów Marycha"]
 
 
 def test_a_place_outside_the_known_forests_says_so(conn: Connection) -> None:

@@ -67,10 +67,10 @@ layers = [
 ]
 
 [[tool.importlinter.contracts]]
-name = "Inside miejsca: MCP tools > search > scoring, geocoding > models"
+name = "Inside miejsca: MCP tools > search > map data > scoring, geocoding > models"
 type = "layers"
 containers = ["grzyby_server.miejsca"]
-layers = ["tools", "search", "scoring | geocoding", "model"]
+layers = ["tools", "search", "map_data", "scoring | geocoding", "model"]
 
 [[tool.importlinter.contracts]]
 name = "Inside lasy: import, entry bans > SQL > sources, models"

@@ -7,8 +7,9 @@ zakazy wstępu) i pogoda z Open-Meteo.
 
 **Stan:** etap 1 w toku. Narzędzie `gdzie_na_grzyby` pod `/mcp` (z mapką, MCP Apps) wskazuje
 trzy najbardziej obiecujące prawdziwe drzewostany wokół miejscowości — według gatunku, wieku
-i siedliska, z pominięciem parków narodowych, rezerwatów i lasów z zakazem wstępu. Zna tylko
-okolice Suwałk i Wigier; pogody jeszcze nie bierze pod uwagę. Plan: [TODO.md](TODO.md),
+i siedliska, z pominięciem parków narodowych, rezerwatów i lasów z zakazem wstępu. Mapa koloruje
+wszystkie drzewostany w promieniu (tryby: wynik, drzewa, wiek, siedlisko). Zna tylko okolice
+Suwałk i Wigier; pogody jeszcze nie bierze pod uwagę. Plan: [TODO.md](TODO.md),
 propozycja stacka: [docs/dev/propozycja-stacka.md](docs/dev/propozycja-stacka.md).
 
 Skąd dane: drzewostany (BDL), parki i rezerwaty (GDOŚ) kopiuje do PostGIS import raz
@@ -56,7 +57,9 @@ adresie (tylko awaryjnie, dla klientów, które nie umieją wysłać nagłówka)
 
 Klucz jest w Bitwardenie (notatka `suwalski-platform/.secrets/grzyby.env`, wartość `MCP_KEY`);
 na laptopie właściciela także w `suwalski-platform/.secrets/grzyby.env`. Nigdy nie wklejaj go
-do repo, zgłoszeń ani rozmów.
+do repo, zgłoszeń ani rozmów. **`just claude-connector`** wypisuje wszystko, co trzeba wpisać
+w konektorze (nazwa, URL, nagłówek z kluczem) i gotową komendę dla Claude Code — klucz bierze
+z pliku obok albo z Bitwardena.
 
 **Claude (claude.ai, aplikacja na komputer i telefon):**
 

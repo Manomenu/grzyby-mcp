@@ -57,3 +57,25 @@ def ban(objectid: int, lon: float, lat: float) -> dict[str, Any]:
         "properties": {"objectid": objectid, "nazwa_nadl": "Suwałki                       ", "data_koncowa": "2026-12-31 00:00:00"},
         "geometry": square(lon, lat, 0.01),
     }
+
+
+def decode_polyline(encoded: str) -> list[tuple[float, float]]:
+    """Google's encoded polyline back to (lat, lon) points — what the map widget does in JS."""
+    points: list[tuple[float, float]] = []
+    index = lat = lon = 0
+    while index < len(encoded):
+        deltas: list[int] = []
+        for _ in range(2):
+            shift = result = 0
+            while True:
+                byte = ord(encoded[index]) - 63
+                index += 1
+                result |= (byte & 0x1F) << shift
+                shift += 5
+                if byte < 0x20:
+                    break
+            deltas.append(~(result >> 1) if result & 1 else result >> 1)
+        lat += deltas[0]
+        lon += deltas[1]
+        points.append((lat / 1e5, lon / 1e5))
+    return points

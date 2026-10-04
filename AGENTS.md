@@ -138,7 +138,10 @@ Never weaken a step to make a change pass — fix the change.
 Every kind of check the repo has applies to new code too. Before calling a feature done, go
 through the list and add what fits — or say in the change why something does not apply:
 
-- **Types** strict on both sides; no `Any`/`unknown` escape hatches without a reason.
+- **Types** strict on both sides; no `Any`/`unknown` escape hatches without a reason. A closed
+  set of values is a type of its own — a `StrEnum` on the server (its values are what the
+  database and the API carry), a union of string literals on the web — never a bare `str`
+  with the allowed values in a comment.
 - **Formatting:** ruff format on the server, Prettier on the web — run `just fmt` before the gate; never hand-format against them or add files to `.prettierignore` to dodge them.
 - **Unit tests** for every module with rules: `grzyby_server/tests/` mirrors the package on
   the server, `<name>.test.ts` sits beside the file on the web.
@@ -206,6 +209,14 @@ A change to one feature should touch one place on each side.
 - **Server:** a feature with more than one concern is a package (`notes/`: `model.py` for
   what the API sends and receives, `store.py` for the SQL, `api.py` for the routes); a single
   concern stays one module (`db.py`). Its router is included in `app.py`.
+- **Server data classes — pydantic at the boundary, dataclass inside.** A pydantic `BaseModel`
+  is for data that crosses the process boundary: what the API or an MCP tool sends and receives
+  (it becomes their schema) and settings. Its fields are a contract with someone outside —
+  renaming one breaks a client — and input from outside deserves validation. A frozen
+  `@dataclass` is for values that live only inside the server: a row from our own SQL, an
+  intermediate result. They change freely, and their types are already checked by pyright;
+  pydantic there would only validate twice and quietly coerce a bug (`"67"` into `67`) instead
+  of failing. So the kind of class tells a reader whether changing it changes the API.
 - **Web:** one folder per feature under `src/`, holding its components, hooks, logic and its
   HTTP calls (`<feature>/api.ts`, typed from `api/openapi.d.ts` — no hand-written copies of
   server models). `api/` is the only shared folder: HTTP plumbing.
@@ -391,6 +402,7 @@ Two vocabularies, chosen word by word:
   | `scripts/.internal/db.sh up\|down\|status\|psql` | the local PostgreSQL on `localhost:5443` (podman container `grzyby-postgres`). `check.sh` runs `up` itself; tests create their own `grzyby_test` database |
   | `scripts/.internal/api-types.sh [--check]` | regenerate `grzyby_web/src/api/openapi.d.ts` after changing a model the API exposes. Never edit that file by hand |
   | `scripts/.internal/secrets.sh backup\|restore` | **not for agents** — the owner's copy of the `.env` files in Bitwarden (`just secrets`, section 7); it asks for the master password |
+  | `scripts/.internal/claude-connector.sh` | **not for agents** — prints the production `/mcp` key for the owner to paste into Claude's connector (`just claude-connector`) |
   | `scripts/.internal/infra-status.sh` | what of the compose stack is up and on which ports (needs `jq`) |
 
   A new helper an agent should reach for goes here too, with a row in this table.

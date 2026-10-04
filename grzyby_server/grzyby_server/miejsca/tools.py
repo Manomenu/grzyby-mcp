@@ -38,8 +38,10 @@ apps = Apps()
     description=(
         "Wskazuje do trzech najbardziej obiecujących dla grzybiarza drzewostanów w promieniu "
         "promien_km od podanej miejscowości: gatunek drzew, wiek, siedlisko, uzasadnienie i link "
-        "do trasy. Pomija parki narodowe, rezerwaty i lasy z aktualnym zakazem wstępu. Na razie "
-        "zna tylko okolice Suwałk i Wigier, a pogody jeszcze nie bierze pod uwagę."
+        "do trasy. Pomija parki narodowe, rezerwaty i lasy z aktualnym zakazem wstępu. Mapa pod "
+        "odpowiedzią koloruje wszystkie drzewostany w promieniu według oceny, z trybami: wynik, "
+        "drzewa, wiek, siedlisko; kliknięcie w las pokazuje, skąd jego ocena. Na razie zna tylko "
+        "okolice Suwałk i Wigier (lasy państwowe), a pogody jeszcze nie bierze pod uwagę."
     ),
 )
 def gdzie_na_grzyby(

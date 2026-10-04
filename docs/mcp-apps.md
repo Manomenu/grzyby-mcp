@@ -61,6 +61,19 @@ Wnioski:
   OpenStreetMap: bez klucza, z przypisaniem; ich zasady wykluczają duży ruch — przy większym
   ruchu własne źródło kafelków.
 
+### 2a. Linki, pełny ekran, rozmiar danych
+
+- **Linki przez hosta:** piaskownica może blokować nowe okna, więc link do trasy idzie przez
+  `app.openLink({ url })` (komunikat `ui/open-link`), a `window.open` jest tylko zapasem.
+- **Pełny ekran:** widżet deklaruje `availableDisplayModes: ["inline", "fullscreen"]` w `App`,
+  a przycisk pokazuje tylko wtedy, gdy host ma `fullscreen` w swoim
+  `hostContext.availableDisplayModes` (specyfikacja: najpierw sprawdzić, potem prosić).
+- **`structuredContent` nie trafia do kontekstu modelu** (specyfikacja: „not added to model
+  context”) — kształty drzewostanów nie kosztują tokenów; model czyta tylko `content` (tekst).
+  Limit ~150 000 znaków dalej obowiązuje: budżet w `miejsca/map_data.py`, kształty jako encoded
+  polyline (ok. ¼ GeoJSON), cechy drzewostanów kolumnami (klucze raz, nie 2000 razy).
+- **Dwa tysiące wielokątów:** Leaflet z `preferCanvas: true` — płynnie, bez SVG.
+
 ### 3. Zgoda użytkownika
 
 Przy pierwszym użyciu Claude pyta, czy wyświetlić aplikację („Allow” / „Always allow”). Bez
