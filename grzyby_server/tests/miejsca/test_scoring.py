@@ -3,10 +3,13 @@ from dataclasses import replace
 import pytest
 
 from grzyby_server.lasy.model import Wydzielenie
-from grzyby_server.miejsca import scoring
+from grzyby_server.miejsca import grzyby, scoring
 from grzyby_server.miejsca.model import Grzyb, Miesiac
+from grzyby_server.pogoda.model import Warunki
 
 RADIUS_M = 15_000
+# A good autumn week: 13 °C, a soaking a week ago, damp ground, no frost.
+GOOD = Warunki(temperatura_5_dni=13.2, opad_5_dni=2.0, opad_3_14_dni=30.0, wilgotnosc_gleby=0.28, mroz_dni_temu=None)
 AUGUST, OCTOBER, JULY, JANUARY, MAY, NOVEMBER = (
     Miesiac.SIERPIEN,
     Miesiac.PAZDZIERNIK,
@@ -26,19 +29,20 @@ PINE = Wydzielenie(
     lon=22.9,
     distance_m=1000,
     shape=[],
+    tile="541_152",
 )
 
 
 def season(g: Grzyb, month: Miesiac) -> str:
-    return scoring.score(PINE, [g], month, RADIUS_M).reasons[g][-1]
+    return next(r for r in scoring.score(PINE, [g], month, RADIUS_M, GOOD).reasons[g] if r.startswith(month.nazwa))
 
 
 def points(w: Wydzielenie, g: Grzyb, month: Miesiac = AUGUST) -> float:
-    return scoring.score(w, [g], month, RADIUS_M).points
+    return scoring.score(w, [g], month, RADIUS_M, GOOD).points
 
 
 def test_a_mature_pine_forest_in_august_is_near_the_top_for_a_cep() -> None:
-    score = scoring.score(PINE, [Grzyb.BOROWIK], AUGUST, RADIUS_M)
+    score = scoring.score(PINE, [Grzyb.BOROWIK], AUGUST, RADIUS_M, GOOD)
 
     assert score.points > 0.8
     assert score.name == "Las sosnowy, 70 lat, 10 ha"
@@ -48,6 +52,7 @@ def test_a_mature_pine_forest_in_august_is_near_the_top_for_a_cep() -> None:
         "bór mieszany świeży — bardzo dobrze",
         "dojrzały drzewostan (70 lat) — bardzo dobrze",
         "sierpień: szczyt sezonu",
+        "pogoda: 30 mm deszczu 3–14 dni temu, gleba mokra, średnio 13 °C — bardzo dobrze",
     ]
 
 
@@ -75,7 +80,7 @@ def test_the_month_counts() -> None:
 
 
 def test_asked_about_several_a_stand_scores_for_each_and_on_average() -> None:
-    score = scoring.score(replace(PINE, gatunek="BRZ", siedlisko="LMW", wiek=30), [Grzyb.BOROWIK, Grzyb.KOZLARZ], AUGUST, RADIUS_M)
+    score = scoring.score(replace(PINE, gatunek="BRZ", siedlisko="LMW", wiek=30), [Grzyb.BOROWIK, Grzyb.KOZLARZ], AUGUST, RADIUS_M, GOOD)
 
     assert score.per_grzyb[Grzyb.KOZLARZ] > score.per_grzyb[Grzyb.BOROWIK]
     assert score.points == pytest.approx((score.per_grzyb[Grzyb.KOZLARZ] + score.per_grzyb[Grzyb.BOROWIK]) / 2)
@@ -84,7 +89,7 @@ def test_asked_about_several_a_stand_scores_for_each_and_on_average() -> None:
 
 def test_spots_can_be_picked_for_the_average_or_for_one_mushroom() -> None:
     birch = replace(PINE, adres_lesny="birch", gatunek="BRZ", siedlisko="LMW", wiek=30, lat=PINE.lat + 0.05)
-    scores = [scoring.score(w, [Grzyb.BOROWIK, Grzyb.KOZLARZ], AUGUST, RADIUS_M) for w in (PINE, birch)]
+    scores = [scoring.score(w, [Grzyb.BOROWIK, Grzyb.KOZLARZ], AUGUST, RADIUS_M, GOOD) for w in (PINE, birch)]
 
     assert [s.wydzielenie.adres_lesny for s in scoring.pick(scores, 1, by=lambda s: s.per_grzyb[Grzyb.KOZLARZ])] == ["birch"]
     assert [s.wydzielenie.adres_lesny for s in scoring.pick(scores, 1, by=lambda s: s.per_grzyb[Grzyb.BOROWIK])] == ["a"]
@@ -107,7 +112,7 @@ def test_the_picked_spots_are_the_best_and_at_least_a_kilometre_apart() -> None:
     elsewhere = replace(PINE, adres_lesny="c", lat=PINE.lat + 0.05, wiek=30)
     young = replace(PINE, adres_lesny="d", lat=PINE.lat - 0.05, wiek=10)
 
-    picked = scoring.pick([scoring.score(w, [Grzyb.BOROWIK], AUGUST, RADIUS_M) for w in (young, elsewhere, neighbour, best)])
+    picked = scoring.pick([scoring.score(w, [Grzyb.BOROWIK], AUGUST, RADIUS_M, GOOD) for w in (young, elsewhere, neighbour, best)])
 
     assert [s.wydzielenie.adres_lesny for s in picked] == ["a", "c", "d"]
 
@@ -117,3 +122,35 @@ def test_the_picked_spots_are_the_best_and_at_least_a_kilometre_apart() -> None:
 )
 def test_ages_read_as_polish(years: int, text: str) -> None:
     assert scoring.age_text(years) == text
+
+
+def weather(**changes: object) -> float:
+    return scoring.weather_factor(grzyby.PROFILE[Grzyb.BOROWIK], replace(GOOD, **changes))[0]
+
+
+def test_a_good_week_is_good_weather() -> None:
+    assert weather() > 0.95
+
+
+def test_hot_and_dry_stops_fruiting_but_cool_and_dry_only_slows_it() -> None:
+    # Above 17.5 °C with under 1 mm a day, no fruit body was seen near Bielefeld.
+    assert weather(temperatura_5_dni=19.0, opad_5_dni=0.5) == 0
+    dry = weather(opad_3_14_dni=0.0, wilgotnosc_gleby=0.10, opad_5_dni=0.0)
+    assert 0 < dry < 0.4
+
+
+def test_the_temperature_has_an_optimum() -> None:
+    assert weather(temperatura_5_dni=7.0) < weather()
+    assert weather(temperatura_5_dni=19.0) < weather()
+    assert weather(temperatura_5_dni=0.0) == 0
+
+
+def test_a_recent_frost_spoils_the_week() -> None:
+    assert weather(mroz_dni_temu=1) < weather(mroz_dni_temu=6) < weather()
+
+
+def test_without_weather_the_score_is_left_without_it() -> None:
+    score = scoring.score(PINE, [Grzyb.BOROWIK], AUGUST, RADIUS_M, None)
+
+    assert score.reasons[Grzyb.BOROWIK][-1] == "pogoda: brak danych, ocena bez niej"
+    assert score.points == pytest.approx(scoring.score(PINE, [Grzyb.BOROWIK], AUGUST, RADIUS_M, GOOD).points, rel=0.05)

@@ -1,10 +1,10 @@
 """How promising a stand is for the mushrooms asked about, and why — a plain formula, no AI.
 
 For each mushroom the score is the product of its factors from grzyby.py — trees, site, age,
-month — times two minor ones of the stand itself, size and distance. One zero rules a stand out
-for that mushroom. Asked about several, a stand has a score for each and their average — the
-map shows either, and each has its own best spots. Weather joins the factors next (TODO,
-stage 1).
+month — and of the weather over the stand's tile (weather_factor), times two minor ones of the
+stand itself, size and distance. One zero rules a stand out for that mushroom. Asked about
+several, a stand has a score for each and their average — the map shows either, and each has
+its own best spots.
 """
 
 import math
@@ -14,8 +14,22 @@ from dataclasses import dataclass
 from grzyby_server.lasy.model import Wydzielenie
 from grzyby_server.miejsca import grzyby
 from grzyby_server.miejsca.model import Grzyb, Miesiac, ProfilGrzyba
+from grzyby_server.pogoda.model import Warunki
 
 MIN_SPACING_M = 1000  # the spots offered should be different walks, not neighbouring stands
+
+# The weather factor (weather_factor). Measured, for the borowik near Bielefeld (Brejon
+# Lamartinière & Hoffman 2025): the response to the 5-day mean temperature is quadratic around an
+# optimum (grzyby.py), most fruiting between 7 and 19 °C; above 17.5 °C with under 1 mm of rain a
+# day there was none at all; below that, fruit bodies came even without rain. Estimates: the
+# rest of the numbers here.
+TEMPERATURE_SPAN = 9.0  # °C from the optimum to a factor of 0; 6 °C off still gives ~0.55
+HOT = 17.5  # °C, the 5-day mean above which a dry spell stops fruiting (measured)
+DRY = 1.0  # mm a day, the 5-day mean below which it counts as dry (measured)
+SOAKING = 25.0  # mm of rain 3 to 14 days back that counts as the ground well soaked
+SOIL_DRY, SOIL_WET = 0.12, 0.28  # m³/m³ at 3 to 9 cm, Open-Meteo's model
+DRY_FLOOR = 0.3  # what dryness leaves when it is not also hot: fruiting slows, does not stop
+FROST_RECENT, FROST_WEEK = 0.2, 0.6  # after frost 0 to 3 days ago, 4 to 7 days ago
 
 
 @dataclass(frozen=True)
@@ -33,8 +47,9 @@ class Score:
         return sum(self.per_grzyb.values()) / len(self.per_grzyb)
 
 
-def score(w: Wydzielenie, wanted: Sequence[Grzyb], month: Miesiac, radius_m: float) -> Score:
-    """`wanted` is not empty."""
+def score(w: Wydzielenie, wanted: Sequence[Grzyb], month: Miesiac, radius_m: float, warunki: Warunki | None) -> Score:
+    """`wanted` is not empty; `warunki` is the weather over the stand's tile, None when unknown
+    (the score is then left without it)."""
     tree = species(w.gatunek) or ""
     tree_name, adjective = grzyby.DRZEWA.get(tree, grzyby.INNE_DRZEWO)
     group, site_name = grzyby.SIEDLISKA.get(w.siedlisko or "", (None, "siedlisko nieznane"))
@@ -45,17 +60,19 @@ def score(w: Wydzielenie, wanted: Sequence[Grzyb], month: Miesiac, radius_m: flo
     size = 0.8 + 0.2 * min(1.0, w.powierzchnia_ha / 5)
     nearness = 1 - 0.3 * min(1.0, w.distance_m / radius_m)
 
-    def factors(profile: ProfilGrzyba) -> tuple[float, float, float, float]:
+    def factors(profile: ProfilGrzyba) -> tuple[float, float, float, float, float]:
         site = profile.siedliska.get(group, 0) if group else grzyby.NIEZNANE_SIEDLISKO
-        return profile.drzewa.get(tree, 0), site, profile.wiek[age_class], profile.sezon.get(month, 0)
+        weather = weather_factor(profile, warunki)[0] if warunki else 1.0
+        return profile.drzewa.get(tree, 0), site, profile.wiek[age_class], profile.sezon.get(month, 0), weather
 
     def reasons(profile: ProfilGrzyba) -> list[str]:
-        tree_f, site_f, age_f, _season = factors(profile)  # the season goes into words by season_text
+        tree_f, site_f, age_f, _season, _weather = factors(profile)  # season and weather say their own words
         return [
             f"{tree_name} — {opinion(tree_f)} dla {profile.dopelniacz}",
             f"{site_name} — {opinion(site_f)}",
             f"{age_name} — {opinion(age_f)}",
             f"{month.nazwa}: {season_text(profile, month)}",
+            weather_factor(profile, warunki)[1] if warunki else "pogoda: brak danych, ocena bez niej",
         ]
 
     return Score(
@@ -77,6 +94,38 @@ def pick(scores: list[Score], count: int = 3, by: Callable[[Score], float] = lam
         if all(distance_m(candidate.wydzielenie, p.wydzielenie) >= MIN_SPACING_M for p in picked):
             picked.append(candidate)
     return picked
+
+
+def weather_factor(profile: ProfilGrzyba, w: Warunki) -> tuple[float, str]:
+    """The weather of the days before, as a factor for one mushroom and a sentence."""
+    temperature = max(0.0, 1 - ((w.temperatura_5_dni - profile.temperatura) / TEMPERATURE_SPAN) ** 2)
+    hot_and_dry = w.temperatura_5_dni > HOT and w.opad_5_dni < DRY
+    soil = soil_wetness(w)
+    moisture = DRY_FLOOR + (1 - DRY_FLOOR) * wetness(w)
+    frost = 1.0 if w.mroz_dni_temu is None else FROST_RECENT if w.mroz_dni_temu <= 3 else FROST_WEEK
+    factor = 0.0 if hot_and_dry else temperature * moisture * frost
+
+    ground = "" if soil is None else ", gleba " + ("mokra" if soil >= 0.7 else "wilgotna" if soil >= 0.35 else "sucha")
+    words = [f"pogoda: {w.opad_3_14_dni:.0f} mm deszczu 3–14 dni temu{ground}, średnio {w.temperatura_5_dni:.0f} °C"]
+    if hot_and_dry:
+        words.append("za gorąco i za sucho")
+    if w.mroz_dni_temu is not None:
+        words.append(f"przymrozek {w.mroz_dni_temu} dni temu" if w.mroz_dni_temu else "przymrozek dziś")
+    return factor, ", ".join(words) + f" — {opinion(factor) if factor > 0 else 'teraz nie wyrośnie'}"
+
+
+def wetness(w: Warunki) -> float:
+    """How wet the ground is, 0 to 1: the rain that had time to act, and the soil itself when the
+    model has it."""
+    rain = min(1.0, w.opad_3_14_dni / SOAKING)
+    soil = soil_wetness(w)
+    return rain if soil is None else (rain + soil) / 2
+
+
+def soil_wetness(w: Warunki) -> float | None:
+    if w.wilgotnosc_gleby is None:
+        return None
+    return min(1.0, max(0.0, (w.wilgotnosc_gleby - SOIL_DRY) / (SOIL_WET - SOIL_DRY)))
 
 
 def in_season(wanted: Sequence[Grzyb], month: Miesiac) -> bool:

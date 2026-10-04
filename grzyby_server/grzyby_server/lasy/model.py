@@ -21,6 +21,7 @@ class Wydzielenie:
     distance_m: float
     # The outline for the map: polygons of rings, each ring an encoded polyline (store.SHAPE).
     shape: list[list[str]]
+    tile: str  # the grid tile it belongs to (Tile.id) — where its weather comes from
 
 
 class ObszarKind(StrEnum):

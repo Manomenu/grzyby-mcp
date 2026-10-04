@@ -7,7 +7,7 @@
             "nazwa": "Las sosnowy, 70 lat, 40 ha",
             "lat": 54.108000000000004,
             "lon": 22.93,
-            "dlaczego": "średnio 41/100: borowik 88, koźlarz 9, maślak 26; sosna; bór mieszany świeży; dojrzały drzewostan (70 lat); 0,9 km od centrum.",
+            "dlaczego": "średnio 34/100: borowik 74, koźlarz 8, maślak 22; sosna; bór mieszany świeży; dojrzały drzewostan (70 lat); 0,9 km od centrum.",
             "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.108000%2C22.930000",
             "adres_lesny": "big-pine"
         },
@@ -15,7 +15,7 @@
             "nazwa": "Las brzozowy, 70 lat, 10 ha",
             "lat": 54.102000000000004,
             "lon": 22.976,
-            "dlaczego": "średnio 33/100: borowik 27, koźlarz 73, maślak 0; brzoza; las mieszany wilgotny; dojrzały drzewostan (70 lat); 3,0 km od centrum.",
+            "dlaczego": "średnio 28/100: borowik 23, koźlarz 61, maślak 0; brzoza; las mieszany wilgotny; dojrzały drzewostan (70 lat); 3,0 km od centrum.",
             "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.102000%2C22.976000",
             "adres_lesny": "birch"
         },
@@ -23,7 +23,7 @@
             "nazwa": "Las sosnowy, 12 lat, 10 ha",
             "lat": 54.102000000000004,
             "lon": 22.881,
-            "dlaczego": "średnio 31/100: borowik 4, koźlarz 7, maślak 81; sosna; bór mieszany świeży; młodnik (12 lat); 3,2 km od centrum.",
+            "dlaczego": "średnio 26/100: borowik 3, koźlarz 5, maślak 68; sosna; bór mieszany świeży; młodnik (12 lat); 3,2 km od centrum.",
             "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.102000%2C22.881000",
             "adres_lesny": "young"
         }
@@ -34,7 +34,7 @@
                 "nazwa": "Las sosnowy, 70 lat, 40 ha",
                 "lat": 54.108000000000004,
                 "lon": 22.93,
-                "dlaczego": "sosna — bardzo dobrze dla borowika; bór mieszany świeży — bardzo dobrze; dojrzały drzewostan (70 lat) — bardzo dobrze; wrzesień: szczyt sezonu; 0,9 km od centrum.",
+                "dlaczego": "sosna — bardzo dobrze dla borowika; bór mieszany świeży — bardzo dobrze; dojrzały drzewostan (70 lat) — bardzo dobrze; wrzesień: szczyt sezonu; pogoda: 20 mm deszczu 3–14 dni temu, gleba mokra, średnio 13 °C — dobrze; 0,9 km od centrum.",
                 "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.108000%2C22.930000",
                 "adres_lesny": "big-pine"
             },
@@ -42,7 +42,7 @@
                 "nazwa": "Las świerkowy, 140 lat, 10 ha",
                 "lat": 54.136,
                 "lon": 22.926,
-                "dlaczego": "świerk — bardzo dobrze dla borowika; bór mieszany świeży — bardzo dobrze; stary drzewostan (140 lat) — dobrze; wrzesień: szczyt sezonu; 4,0 km od centrum.",
+                "dlaczego": "świerk — bardzo dobrze dla borowika; bór mieszany świeży — bardzo dobrze; stary drzewostan (140 lat) — dobrze; wrzesień: szczyt sezonu; pogoda: 20 mm deszczu 3–14 dni temu, gleba mokra, średnio 13 °C — dobrze; 4,0 km od centrum.",
                 "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.136000%2C22.926000",
                 "adres_lesny": "spruce"
             },
@@ -50,7 +50,7 @@
                 "nazwa": "Las brzozowy, 70 lat, 10 ha",
                 "lat": 54.102000000000004,
                 "lon": 22.976,
-                "dlaczego": "brzoza — dobrze dla borowika; las mieszany wilgotny — średnio; dojrzały drzewostan (70 lat) — bardzo dobrze; wrzesień: szczyt sezonu; 3,0 km od centrum.",
+                "dlaczego": "brzoza — dobrze dla borowika; las mieszany wilgotny — średnio; dojrzały drzewostan (70 lat) — bardzo dobrze; wrzesień: szczyt sezonu; pogoda: 20 mm deszczu 3–14 dni temu, gleba mokra, średnio 13 °C — dobrze; 3,0 km od centrum.",
                 "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.102000%2C22.976000",
                 "adres_lesny": "birch"
             }
@@ -60,7 +60,7 @@
                 "nazwa": "Las brzozowy, 70 lat, 10 ha",
                 "lat": 54.102000000000004,
                 "lon": 22.976,
-                "dlaczego": "brzoza — bardzo dobrze dla koźlarza; las mieszany wilgotny — bardzo dobrze; dojrzały drzewostan (70 lat) — dobrze; wrzesień: szczyt sezonu; 3,0 km od centrum.",
+                "dlaczego": "brzoza — bardzo dobrze dla koźlarza; las mieszany wilgotny — bardzo dobrze; dojrzały drzewostan (70 lat) — dobrze; wrzesień: szczyt sezonu; pogoda: 20 mm deszczu 3–14 dni temu, gleba mokra, średnio 13 °C — dobrze; 3,0 km od centrum.",
                 "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.102000%2C22.976000",
                 "adres_lesny": "birch"
             },
@@ -68,7 +68,7 @@
                 "nazwa": "Las sosnowy, 70 lat, 40 ha",
                 "lat": 54.108000000000004,
                 "lon": 22.93,
-                "dlaczego": "sosna — słabo dla koźlarza; bór mieszany świeży — dobrze; dojrzały drzewostan (70 lat) — dobrze; wrzesień: szczyt sezonu; 0,9 km od centrum.",
+                "dlaczego": "sosna — słabo dla koźlarza; bór mieszany świeży — dobrze; dojrzały drzewostan (70 lat) — dobrze; wrzesień: szczyt sezonu; pogoda: 20 mm deszczu 3–14 dni temu, gleba mokra, średnio 13 °C — dobrze; 0,9 km od centrum.",
                 "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.108000%2C22.930000",
                 "adres_lesny": "big-pine"
             },
@@ -76,7 +76,7 @@
                 "nazwa": "Las sosnowy, 12 lat, 10 ha",
                 "lat": 54.102000000000004,
                 "lon": 22.881,
-                "dlaczego": "sosna — słabo dla koźlarza; bór mieszany świeży — dobrze; młodnik (12 lat) — dobrze; wrzesień: szczyt sezonu; 3,2 km od centrum.",
+                "dlaczego": "sosna — słabo dla koźlarza; bór mieszany świeży — dobrze; młodnik (12 lat) — dobrze; wrzesień: szczyt sezonu; pogoda: 20 mm deszczu 3–14 dni temu, gleba mokra, średnio 13 °C — dobrze; 3,2 km od centrum.",
                 "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.102000%2C22.881000",
                 "adres_lesny": "young"
             }
@@ -86,7 +86,7 @@
                 "nazwa": "Las sosnowy, 12 lat, 10 ha",
                 "lat": 54.102000000000004,
                 "lon": 22.881,
-                "dlaczego": "sosna — bardzo dobrze dla maślaka; bór mieszany świeży — bardzo dobrze; młodnik (12 lat) — bardzo dobrze; wrzesień: szczyt sezonu; 3,2 km od centrum.",
+                "dlaczego": "sosna — bardzo dobrze dla maślaka; bór mieszany świeży — bardzo dobrze; młodnik (12 lat) — bardzo dobrze; wrzesień: szczyt sezonu; pogoda: 20 mm deszczu 3–14 dni temu, gleba mokra, średnio 13 °C — dobrze; 3,2 km od centrum.",
                 "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.102000%2C22.881000",
                 "adres_lesny": "young"
             },
@@ -94,7 +94,7 @@
                 "nazwa": "Las sosnowy, 70 lat, 40 ha",
                 "lat": 54.108000000000004,
                 "lon": 22.93,
-                "dlaczego": "sosna — bardzo dobrze dla maślaka; bór mieszany świeży — bardzo dobrze; dojrzały drzewostan (70 lat) — średnio; wrzesień: szczyt sezonu; 0,9 km od centrum.",
+                "dlaczego": "sosna — bardzo dobrze dla maślaka; bór mieszany świeży — bardzo dobrze; dojrzały drzewostan (70 lat) — średnio; wrzesień: szczyt sezonu; pogoda: 20 mm deszczu 3–14 dni temu, gleba mokra, średnio 13 °C — dobrze; 0,9 km od centrum.",
                 "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.108000%2C22.930000",
                 "adres_lesny": "big-pine"
             },
@@ -102,14 +102,14 @@
                 "nazwa": "Las świerkowy, 140 lat, 10 ha",
                 "lat": 54.136,
                 "lon": 22.926,
-                "dlaczego": "świerk — słabo dla maślaka; bór mieszany świeży — bardzo dobrze; stary drzewostan (140 lat) — słabo; wrzesień: szczyt sezonu; 4,0 km od centrum.",
+                "dlaczego": "świerk — słabo dla maślaka; bór mieszany świeży — bardzo dobrze; stary drzewostan (140 lat) — słabo; wrzesień: szczyt sezonu; pogoda: 20 mm deszczu 3–14 dni temu, gleba mokra, średnio 13 °C — dobrze; 4,0 km od centrum.",
                 "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.136000%2C22.926000",
                 "adres_lesny": "spruce"
             }
         ]
     },
     "uwagi": [],
-    "zrodla": "Drzewostany: Bank Danych o Lasach (bdl.lasy.gov.pl), stan na 2026 r., pobrane 12.09.2026, licencja CC BY 4.0; na tej podstawie nasze wyliczenia; parki narodowe i rezerwaty: GDOŚ; zakazy wstępu: BDL, sprawdzone 12.09.2026 12:00; położenie miejscowości: © autorzy OpenStreetMap (Nominatim).",
+    "zrodla": "Drzewostany: Bank Danych o Lasach (bdl.lasy.gov.pl), stan na 2026 r., pobrane 12.09.2026, licencja CC BY 4.0; na tej podstawie nasze wyliczenia; parki narodowe i rezerwaty: GDOŚ; zakazy wstępu: BDL, sprawdzone 12.09.2026 12:00; pogoda: Open-Meteo (open-meteo.com), licencja CC BY 4.0; położenie miejscowości: © autorzy OpenStreetMap (Nominatim).",
     "mapa": {
         "lat": 54.1,
         "lon": 22.93,
@@ -122,9 +122,9 @@
                 [["wr|hI_q{jC?_jA_jA??~iA~iA?"]]
             ],
             "wynik": {
-                "borowik": [88, 27, 4, 53, 0],
-                "kozlarz": [9, 73, 7, 5, 6],
-                "maslak": [26, 0, 81, 2, 0]
+                "borowik": [74, 23, 3, 44, 0],
+                "kozlarz": [8, 61, 5, 4, 5],
+                "maslak": [22, 0, 68, 1, 0]
             },
             "gatunek": ["SO", "BRZ", "SO", "ŚW", "OL"],
             "siedlisko": ["BMŚW", "LMW", "BMŚW", "BMŚW", "OL"],
@@ -215,7 +215,8 @@
                         "9": 1.0,
                         "10": 0.6,
                         "11": 0.15
-                    }
+                    },
+                    "temperatura": 13.2
                 },
                 "kozlarz": {
                     "nazwa": "koźlarz",
@@ -247,7 +248,8 @@
                         "9": 1.0,
                         "10": 0.6,
                         "11": 0.1
-                    }
+                    },
+                    "temperatura": 14.0
                 },
                 "maslak": {
                     "nazwa": "maślak",
@@ -275,10 +277,50 @@
                         "10": 1.0,
                         "11": 0.5,
                         "12": 0.05
-                    }
+                    },
+                    "temperatura": 12.0
                 }
             },
             "miesiac": 9
-        }
+        },
+        "pogoda": {
+            "540_151": {
+                "opad": 20.0,
+                "wilgotnosc_gleby": 0.24,
+                "temperatura": 13.0,
+                "wilgoc": 0.77
+            },
+            "540_152": {
+                "opad": 20.0,
+                "wilgotnosc_gleby": 0.24,
+                "temperatura": 13.0,
+                "wilgoc": 0.77
+            },
+            "540_153": {
+                "opad": 20.0,
+                "wilgotnosc_gleby": 0.24,
+                "temperatura": 13.0,
+                "wilgoc": 0.77
+            },
+            "541_151": {
+                "opad": 20.0,
+                "wilgotnosc_gleby": 0.24,
+                "temperatura": 13.0,
+                "wilgoc": 0.77
+            },
+            "541_152": {
+                "opad": 20.0,
+                "wilgotnosc_gleby": 0.24,
+                "temperatura": 13.0,
+                "wilgoc": 0.77
+            },
+            "541_153": {
+                "opad": 20.0,
+                "wilgotnosc_gleby": 0.24,
+                "temperatura": 13.0,
+                "wilgoc": 0.77
+            }
+        },
+        "kwadrat": [0.1, 0.15]
     }
 }

@@ -36,7 +36,7 @@ ignore = [
 
 # Characters the domain uses on purpose (e.g. the en dash or × in Polish documents) go here,
 # not into `# noqa` comments.
-allowed-confusables = []
+allowed-confusables = ["–"]  # the en dash of Polish text: "3–14 dni"
 
 [lint.per-file-ignores]
 # assert is how pytest tests; fixtures and test functions need no annotations to be read.

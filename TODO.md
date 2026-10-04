@@ -39,10 +39,14 @@ sprawdzimy licencji danych.
       Gdańska i Ponikwi Wielkiej (styk trzech RDLP) — punkty odniesienia.
 - [x] Zakazy wstępu (BDL) na żywo: cały kraj, pobierane przy zapytaniu, ważne 4 godziny
       (`lasy/zakazy.py`); gdy BDL nie odpowiada — stare zakazy i ostrzeżenie w odpowiedzi.
-- [ ] Pogoda z Open-Meteo: opady, temperatura i wilgotność gleby z ostatnich ~30 dni
-      (`past_days`), raz dziennie albo przy zapytaniu z cache na dzień.
-      Wzór pogody uwzględnia **opóźnienie wysypu** (grzyby wychodzą kilka dni po deszczu, nie
-      w dzień deszczu) i **wygaszanie** przy suszy, upale i mrozie (podpatrzone w GrzyboRadarze).
+- [x] **Pogoda z Open-Meteo** (4.10.2026, `pogoda/`): dla każdego kwadratu siatki opady, temperatura
+      i wilgotność gleby, 21 dni wstecz i 6 naprzód, odświeżane co 3 godziny, wszystkie kwadraty
+      pytania jednym zapytaniem. Czynnik pogody dla grzyba (`scoring.weather_factor`): temperatura
+      z 5 dni wokół optimum grzyba × wilgoć (deszcz sprzed 3–14 dni i gleba, z podłogą) × „gorąco
+      i sucho” (powyżej 17,5 °C i poniżej 1 mm dziennie → zero) × przymrozek. Podstawa: dekada
+      monitoringu borowika pod Bielefeld (Brejon Lamartinière & Hoffman 2025) — okno 5 dni,
+      optimum 13,2 °C, reguła gorąco i sucho; reszta liczb szacunkowa, do korekty w etapie 2.
+      Tryb mapy „Pogoda”: kwadraty w kolorach wilgoci.
 - [ ] **Data w obecnym narzędziu** — opcjonalny parametr: dzień, na który liczyć ocenę, od
       3 dni wstecz do 5 dni naprzód (domyślnie dziś). Open-Meteo daje w jednym zapytaniu
       historię (`past_days`) i prognozę (`forecast_days`), więc wstecz też się da.
@@ -107,8 +111,24 @@ sprawdzimy licencji danych.
       tunel Cloudflare — **publiczny**, bez Cloudflare Access; `/mcp` chroni wspólny klucz).
 - [ ] Cache wyników na dzień (ochrona przed nadużyciem; limit zapytań — „Przed publicznym startem”).
 - [ ] Domena `gdzie-na-grzyby.pl` (sprawdzić cenę **odnowienia**, nie tylko pierwszego roku).
-- [ ] Strona: czym to jest, instrukcja „Ustawienia → Konektory → Dodaj własny” dla Claude
-      i ChatGPT, przypisanie źródeł danych (BDL, Open-Meteo, GDOŚ, mapa).
+- [ ] Strona: czym to jest, przypisanie źródeł danych (BDL, Open-Meteo, GDOŚ, mapa) i
+      **instrukcja instalacji konektora** — najpierw Claude (claude.ai i Claude Code), potem przełącznik
+      instrukcji Claude / ChatGPT. Treść zależy od sposobu dostępu (niżej): dziś to wspólny klucz
+      w nagłówku (`just claude-connector`), dla innych ludzi będzie inaczej.
+- [ ] **Dostęp dla innych ludzi zamiast wspólnego klucza** — do dyskusji, od najmniejszego
+      tarcia dla użytkownika:
+      1. **OAuth z MCP** — Claude i ChatGPT przy dodawaniu konektora same otwierają okno
+         logowania serwera (specyfikacja MCP, autoryzacja OAuth 2.1): użytkownik klika
+         „Połącz”, loguje się raz, niczego nie kopiuje. Logowanie jest **nasze** (Claude/OpenAI
+         nie udostępniają swoich kont cudzym serwerom), ale może przekazać dalej: Google,
+         GitHub, kod na maila. Kto to obsłuży — sprawdzić Cloudflare Access (ochrona MCP przez
+         OAuth, pasuje do AGENTS.md §8) albo gotowego dostawcę; własny serwer autoryzacji
+         to sporo kodu.
+      2. **Rejestracja mailem i osobisty klucz** — formularz na stronie, klucz przychodzi
+         mailem, użytkownik wkleja go w nagłówek konektora jak dziś. Prostsze do zbudowania,
+         ale więcej kroków i klucz do pilnowania; wymaga wysyłki maili i tabeli kluczy.
+      Przy obu: limit zapytań na osobę, możliwość odcięcia jednej osoby, RODO (mail to dana
+      osobowa — polityka prywatności).
 
 ## Przed publicznym startem
 

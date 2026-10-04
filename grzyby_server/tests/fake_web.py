@@ -1,9 +1,11 @@
 """A stand-in for fetch.get_json: answers from what a test gave it, remembers what was asked."""
 
 from collections.abc import Callable, Mapping
+from datetime import date, timedelta
 from typing import Any
 
 from grzyby_server.lasy import sources
+from grzyby_server.pogoda import sources as weather_sources
 
 type Answer = Any | Callable[[Mapping[str, str | int]], Any]
 
@@ -61,10 +63,37 @@ def ban(objectid: int, lon: float, lat: float) -> dict[str, Any]:
     }
 
 
-def forest_services(stands: Answer = None, protected: Answer = None, bans: Answer = None) -> dict[str, Answer]:
-    """BDL and GDOŚ as the tiles see them (FakeWeb answers): every RDLP collection gives `stands`
-    (a list) whatever the box — or raises, when given an exception — GDOŚ the `protected` areas
-    for both layers, the ban service `bans`. Unset: nothing anywhere."""
+def open_meteo(today: date, *, rain: float = 20.0, rain_days_ago: int = 7, temperature: float = 13.0, soil: float | None = 0.24) -> Answer:
+    """Open-Meteo's answer for as many points as asked: dry days around one rain of `rain` mm
+    `rain_days_ago` days before `today`, the same temperature every day (nights 7 °C colder),
+    soil moisture `soil`.
+    Days from three weeks back to five ahead, as sources.fetch_dni asks."""
+
+    def answer(params: Mapping[str, str | int]) -> Any:
+        days = [today + timedelta(days=k) for k in range(-weather_sources.PAST_DAYS, weather_sources.FORECAST_DAYS)]
+        point = {
+            "daily": {
+                "time": [d.isoformat() for d in days],
+                "precipitation_sum": [rain if d == today - timedelta(days=rain_days_ago) else 0.0 for d in days],
+                "temperature_2m_mean": [temperature for _ in days],
+                "temperature_2m_min": [temperature - 7 for _ in days],
+            },
+            "hourly": {
+                "time": [f"{d.isoformat()}T{h:02d}:00" for d in days for h in (0, 12)],
+                "soil_moisture_3_to_9cm": [soil for _ in days for _ in (0, 12)],
+            },
+        }
+        points = len(str(params["latitude"]).split(","))
+        return point if points == 1 else [point] * points
+
+    return answer
+
+
+def forest_services(stands: Answer = None, protected: Answer = None, bans: Answer = None, weather: Answer = None) -> dict[str, Answer]:
+    """The outside services as a search sees them (FakeWeb answers): every RDLP collection gives
+    `stands` (a list) whatever the box — or raises, when given an exception — GDOŚ the
+    `protected` areas for both layers, the ban service `bans`, Open-Meteo the `weather`. Unset:
+    nothing anywhere, and a good autumn week."""
 
     def wrap(answer: Answer) -> Answer:
         return answer if isinstance(answer, BaseException) or callable(answer) else {"features": answer or []}
@@ -72,6 +101,8 @@ def forest_services(stands: Answer = None, protected: Answer = None, bans: Answe
     answers: dict[str, Answer] = {sources.BDL_STANDS.format(rdlp=rdlp): wrap(stands) for rdlp in sources.RDLP_BBOX}
     answers[sources.GDOS_WFS] = wrap(protected)
     answers[sources.BDL_BANS] = wrap(bans)
+    # A good autumn week by default: rain a week ago, 13 °C, damp ground (dated 4.10.2026).
+    answers[weather_sources.OPEN_METEO] = weather if weather is not None else open_meteo(date(2026, 10, 4))
     return answers
 
 

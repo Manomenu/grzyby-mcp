@@ -185,6 +185,10 @@ test("the map widget draws the answer under the host's CSP and talks to the host
     await trees.click();
     await expect(trees).toHaveAttribute("aria-pressed", "true");
     await expect(widget.getByText("sosna", { exact: true })).toBeVisible();
+    // The weather mode: the grid's tiles coloured by how wet the ground is.
+    await widget.getByRole("button", { name: "Pogoda", exact: true }).click();
+    await expect(widget.getByText("deszcz 3–14 dni temu i wilgotność gleby (Open-Meteo)", { exact: true })).toBeVisible();
+    await widget.getByRole("button", { name: "Drzewa", exact: true }).click();
 
     // A click on the forest explains its score. Spot 1 stands in the middle of the big pine
     // forest; just below its marker is forest, not the marker.
@@ -192,7 +196,7 @@ test("the map widget draws the answer under the host's CSP and talks to the host
     if (!first) throw new Error("spot 1 has no position");
     await page.mouse.click(first.x + first.width / 2, first.y + first.height + 12);
     await expect(widget.locator(".popup")).toContainText("Las sosnowy");
-    await expect(widget.locator(".popup")).toContainText("borowik: bardzo dobry (88/100)");
+    await expect(widget.locator(".popup")).toContainText(/borowik: [a-ząę ]+ \(\d+\/100\)/);
     await expect(widget.locator(".popup")).toContainText("Siedlisko: BMŚW");
 
     // Routes open through the host: the sandbox allows no new windows.

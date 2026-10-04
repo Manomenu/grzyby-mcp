@@ -3,11 +3,12 @@ enter, and the scoring rules — within the size a chatbot passes on to a widget
 """
 
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
-from grzyby_server.lasy.model import Obszar
+from grzyby_server.lasy.model import TILE_LAT, TILE_LON, Obszar
 from grzyby_server.miejsca import grzyby, scoring
-from grzyby_server.miejsca.model import Drzewostany, Grzyb, Mapa, Miesiac, ObszarNaMapie, Reguly
+from grzyby_server.miejsca.model import Drzewostany, Grzyb, Mapa, Miesiac, ObszarNaMapie, PogodaKwadratu, Reguly
+from grzyby_server.pogoda.model import Warunki
 
 # Characters of outlines and attributes the stands may take. A tool result above ~150 000
 # characters never reaches the widget in claude.ai (docs/mcp-apps.md); the rest of the answer is
@@ -16,9 +17,22 @@ from grzyby_server.miejsca.model import Drzewostany, Grzyb, Mapa, Miesiac, Obsza
 BUDGET = 120_000
 
 
+def rules(wanted: Sequence[Grzyb], month: Miesiac) -> Reguly:
+    """The tables behind the colours: only the mushrooms asked about, and the month scored."""
+    return Reguly(
+        drzewa=grzyby.DRZEWA,
+        siedliska=grzyby.SIEDLISKA,
+        grupy_siedlisk=grzyby.GRUPY_SIEDLISK,
+        klasy_wieku=grzyby.KLASY_WIEKU,
+        grzyby={g: grzyby.PROFILE[g] for g in wanted},
+        miesiac=month,
+    )
+
+
 def build_map(
-    scores: list[scoring.Score], obszary: list[Obszar], center: tuple[float, float], wanted: Sequence[Grzyb], month: Miesiac
+    scores: list[scoring.Score], obszary: list[Obszar], center: tuple[float, float], reguly: Reguly, warunki: Mapping[str, Warunki | None]
 ) -> Mapa:
+    wanted = list(reguly.grzyby)
     # A stand's attributes as JSON, besides its outline: `"SO","BMŚW",67,` and a score per mushroom.
     attributes_size = 16 + 4 * len(wanted)
     on_map: list[scoring.Score] = []
@@ -41,12 +55,16 @@ def build_map(
         ),
         pominiete=len(scores) - len(on_map),
         obszary=[ObszarNaMapie(rodzaj=o.kind, nazwa=o.name, ksztalt=o.shape) for o in obszary],
-        reguly=Reguly(
-            drzewa=grzyby.DRZEWA,
-            siedliska=grzyby.SIEDLISKA,
-            grupy_siedlisk=grzyby.GRUPY_SIEDLISK,
-            klasy_wieku=grzyby.KLASY_WIEKU,
-            grzyby={g: grzyby.PROFILE[g] for g in wanted},
-            miesiac=month,
-        ),
+        reguly=reguly,
+        pogoda={
+            tile: PogodaKwadratu(
+                opad=round(w.opad_3_14_dni, 1),
+                wilgotnosc_gleby=w.wilgotnosc_gleby,
+                temperatura=round(w.temperatura_5_dni, 1),
+                wilgoc=round(scoring.wetness(w), 2),
+            )
+            for tile, w in warunki.items()
+            if w is not None
+        },
+        kwadrat=(TILE_LAT, TILE_LON),
     )

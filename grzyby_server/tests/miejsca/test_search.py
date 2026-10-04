@@ -128,3 +128,20 @@ def test_several_mushrooms_have_spots_of_their_own_and_shared_ones(conn: Connect
     assert answer.miejsca_na_grzyb[Grzyb.KOZLARZ][0].dlaczego.startswith("brzoza — bardzo dobrze dla koźlarza")
     assert answer.mapa is not None
     assert set(answer.mapa.drzewostany.wynik) == {Grzyb.BOROWIK, Grzyb.KOZLARZ}
+
+
+def test_weather_that_could_not_be_fetched_is_a_warning_and_the_score_goes_on(conn: Connection) -> None:
+    services = FakeWeb({geocoding.NOMINATIM: SUWALKI, **forest_services(stands=[stand("pine", LON, LAT)], weather=OSError("down"))})
+
+    answer = search(conn, services, Query("Suwałki", [Grzyb.BOROWIK], 15, 3), NOW)
+
+    assert [m.adres_lesny for m in answer.miejsca] == ["pine"]
+    assert any("pogody" in uwaga for uwaga in answer.uwagi)
+    assert "pogoda: brak danych" in answer.miejsca[0].dlaczego
+
+
+def test_the_weather_is_in_the_reasons_and_the_attribution(conn: Connection) -> None:
+    answer = search(conn, web(stands=[stand("pine", LON, LAT)]), Query("Suwałki", [Grzyb.BOROWIK], 15, 3), NOW)
+
+    assert "pogoda: 20 mm deszczu 3–14 dni temu" in answer.miejsca[0].dlaczego
+    assert "Open-Meteo" in answer.zrodla

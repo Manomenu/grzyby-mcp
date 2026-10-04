@@ -61,6 +61,7 @@ type = "layers"
 layers = [
     "grzyby_server.app",
     "grzyby_server.miejsca",
+    "grzyby_server.pogoda",
     "grzyby_server.lasy",
     "grzyby_server.db | grzyby_server.fetch | grzyby_server.mcp_key",
     "grzyby_server.settings",
@@ -77,3 +78,9 @@ name = "Inside lasy: the monthly job > tiles on demand, entry bans > SQL > sourc
 type = "layers"
 containers = ["grzyby_server.lasy"]
 layers = ["importer", "tiles | zakazy", "store", "sources | model"]
+
+[[tool.importlinter.contracts]]
+name = "Inside pogoda: refresh > SQL, Open-Meteo, conditions > models"
+type = "layers"
+containers = ["grzyby_server.pogoda"]
+layers = ["refresh", "store | sources | conditions", "model"]

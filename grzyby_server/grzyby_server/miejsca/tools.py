@@ -49,7 +49,8 @@ apps = Apps()
         "z przełącznikiem grzybów i trybami: wynik, drzewa, wiek, siedlisko; kliknięcie w las pokazuje, skąd "
         "jego ocena. Działa w całej Polsce, "
         "ale zna tylko Lasy Państwowe; pierwsze pytanie o nową okolicę trwa kilka sekund, bo "
-        "dane dopiero przychodzą. Pogody jeszcze nie bierze pod uwagę."
+        "dane dopiero przychodzą. Uwzględnia pogodę ostatnich dni: deszcz sprzed 3–14 dni, wilgotność gleby, "
+        "temperaturę i przymrozki."
     ),
 )
 def gdzie_na_grzyby(

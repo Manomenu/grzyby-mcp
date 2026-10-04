@@ -5,7 +5,7 @@ error: the chatbot can still tell the user what happened and what to check thems
 """
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from psycopg import Connection
@@ -15,6 +15,10 @@ from grzyby_server.lasy import store, tiles, zakazy
 from grzyby_server.lasy.model import tiles_around
 from grzyby_server.miejsca import geocoding, grzyby, map_data, scoring
 from grzyby_server.miejsca.model import Answer, Grzyb, Miejsce, Miesiac, route_url
+from grzyby_server.pogoda import refresh as weather
+from grzyby_server.pogoda import store as weather_store
+from grzyby_server.pogoda.conditions import conditions
+from grzyby_server.pogoda.model import Warunki
 
 POLAND = ZoneInfo("Europe/Warsaw")
 
@@ -45,14 +49,19 @@ def search(conn: Connection, get_json: GetJson, query: Query, now: datetime) -> 
     # A first question about an area brings its forest data in: a few seconds, once.
     missing = tiles.ensure(conn, get_json, around, now)
     candidates = store.wydzielenia_within(conn, place.lat, place.lon, radius_m)
-    # The month of the season, in Poland's time: a question at 00:30 on the 1st is next month's.
-    month = Miesiac(now.astimezone(POLAND).month)
-    scores = [scoring.score(w, wanted, month, radius_m) for w in candidates]
+    # The day and month in Poland's time: a question at 00:30 on the 1st is next month's.
+    today = now.astimezone(POLAND).date()
+    month = Miesiac(today.month)
+    weather_ok = weather.ensure(conn, get_json, around, now)
+    days = weather_store.days(conn, around, today - timedelta(days=15), today)
+    warunki: dict[str, Warunki | None] = {tile.id: conditions(days.get(tile, []), today) for tile in around}
+    scores = [scoring.score(w, wanted, month, radius_m, warunki.get(w.tile)) for w in candidates]
     # Spots for all the mushrooms at once (their average) and, asked about several, for each on
     # its own — usually different places, as they should be.
     picked = scoring.pick(scores, query.ile_miejsc)
     per_grzyb = {g: scoring.pick(scores, query.ile_miejsc, by=lambda s, g=g: s.per_grzyb[g]) for g in wanted} if len(wanted) > 1 else {}
-    mapa = map_data.build_map(scores, store.obszary_within(conn, place.lat, place.lon, radius_m), (place.lat, place.lon), wanted, month)
+    obszary = store.obszary_within(conn, place.lat, place.lon, radius_m)
+    mapa = map_data.build_map(scores, obszary, (place.lat, place.lon), map_data.rules(wanted, month), warunki)
 
     uwagi: list[str] = []
     if not scoring.in_season(wanted, month):
@@ -74,6 +83,8 @@ def search(conn: Connection, get_json: GetJson, query: Query, now: datetime) -> 
         )
     if mapa.pominiete:
         uwagi.append(f"Mapa pokazuje {len(mapa.drzewostany.wiek)} najlepszych drzewostanów; {mapa.pominiete} słabszych się nie zmieściło.")
+    if not weather_ok or not any(warunki.values()):
+        uwagi.append("Nie udało się teraz pobrać pogody (Open-Meteo) — ocena bez niej; spróbuj za chwilę.")
     if zakazy_at is None or now - zakazy_at >= zakazy.FRESH_FOR:
         uwagi.append("Nie udało się sprawdzić aktualnych zakazów wstępu do lasu — przed wyjściem zajrzyj na bdl.lasy.gov.pl.")
 
@@ -120,6 +131,7 @@ def attribution(data_year: int | None, wydzielenia_at: datetime | None, zakazy_a
         + ", licencja CC BY 4.0; na tej podstawie nasze wyliczenia",
         "parki narodowe i rezerwaty: GDOŚ",
         "zakazy wstępu: BDL" + (f", sprawdzone {zakazy_at.astimezone(POLAND):%d.%m.%Y %H:%M}" if zakazy_at else ""),
+        "pogoda: Open-Meteo (open-meteo.com), licencja CC BY 4.0",
         "położenie miejscowości: © autorzy OpenStreetMap (Nominatim)",
     ]
     return "; ".join(parts) + "."
