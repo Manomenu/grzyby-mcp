@@ -55,7 +55,7 @@ WIEK: list[tuple[int | None, float, str]] = [
     (121, 1.0, "dojrzały drzewostan — najlepszy wiek"),
     (None, 0.8, "stary drzewostan"),
 ]
-MIN_SPACING_M = 1000  # the spots offered should be different walks, not three neighbouring stands
+MIN_SPACING_M = 1000  # the spots offered should be different walks, not neighbouring stands
 
 
 @dataclass(frozen=True)

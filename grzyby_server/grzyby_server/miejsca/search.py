@@ -1,9 +1,10 @@
-"""The search behind the tool: place name → point → stands around it → the best three.
+"""The search behind the tool: place name → point → stands around it → the best few.
 
 Everything a failure of an outside service can break ends as a note in the answer, not as an
 error: the chatbot can still tell the user what happened and what to check themselves.
 """
 
+from dataclasses import dataclass
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -17,7 +18,17 @@ from grzyby_server.miejsca.model import Answer, Miejsce, route_url
 POLAND = ZoneInfo("Europe/Warsaw")
 
 
-def search(conn: Connection, get_json: GetJson, miejscowosc: str, promien_km: int, now: datetime) -> Answer:
+@dataclass(frozen=True)
+class Query:
+    """What the user asked — the tool's parameters, as they came."""
+
+    miejscowosc: str
+    promien_km: int
+    ile_miejsc: int
+
+
+def search(conn: Connection, get_json: GetJson, query: Query, now: datetime) -> Answer:
+    miejscowosc, promien_km = query.miejscowosc, query.promien_km
     try:
         place = geocoding.geocode(conn, get_json, miejscowosc)
     except (OSError, ValueError, KeyError):
@@ -29,7 +40,7 @@ def search(conn: Connection, get_json: GetJson, miejscowosc: str, promien_km: in
     radius_m = promien_km * 1000
     candidates = store.wydzielenia_within(conn, place.lat, place.lon, radius_m)
     scores = [scoring.score(w, radius_m) for w in candidates]
-    picked = scoring.pick(scores)
+    picked = scoring.pick(scores, query.ile_miejsc)
     mapa = map_data.build_map(scores, store.obszary_within(conn, place.lat, place.lon, radius_m), place.lat, place.lon)
 
     uwagi: list[str] = []

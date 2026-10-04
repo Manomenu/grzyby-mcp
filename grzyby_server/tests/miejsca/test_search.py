@@ -6,7 +6,7 @@ from grzyby_server.lasy import sources, store
 from grzyby_server.lasy.model import ObszarKind
 from grzyby_server.miejsca import geocoding
 from grzyby_server.miejsca.model import route_url
-from grzyby_server.miejsca.search import search
+from grzyby_server.miejsca.search import Query, search
 from tests.fake_web import Answer, FakeWeb, area, stand
 
 NOW = datetime(2026, 10, 4, 10, 0, tzinfo=UTC)
@@ -28,7 +28,7 @@ def test_the_best_stands_around_the_place_come_with_reasons_routes_and_attributi
         ],
     )
 
-    answer = search(conn, web(), "Suwałki", 15, NOW)
+    answer = search(conn, web(), Query("Suwałki", 15, 3), NOW)
 
     assert answer.szukano_wokol == "Suwałki, województwo podlaskie, Polska"
     assert [m.adres_lesny for m in answer.miejsca] == ["pine", "alder"]
@@ -47,28 +47,28 @@ def test_the_best_stands_around_the_place_come_with_reasons_routes_and_attributi
 def test_the_map_greys_out_what_one_may_not_enter(conn: Connection) -> None:
     store.replace_obszary(conn, ObszarKind.REZERWAT, [area("Ostoja bobrów Marycha", LON + 0.01, LAT)])
 
-    answer = search(conn, web(), "Suwałki", 15, NOW)
+    answer = search(conn, web(), Query("Suwałki", 15, 3), NOW)
 
     assert answer.mapa is not None
     assert [o.nazwa for o in answer.mapa.obszary] == ["Ostoja bobrów Marycha"]
 
 
 def test_a_place_outside_the_known_forests_says_so(conn: Connection) -> None:
-    answer = search(conn, web(), "Suwałki", 15, NOW)
+    answer = search(conn, web(), Query("Suwałki", 15, 3), NOW)
 
     assert answer.miejsca == []
     assert "okolice Suwałk i Wigier" in answer.uwagi[0]
 
 
 def test_an_unknown_place_says_so(conn: Connection) -> None:
-    answer = search(conn, web(nominatim=[]), "Xyzzy", 15, NOW)
+    answer = search(conn, web(nominatim=[]), Query("Xyzzy", 15, 3), NOW)
 
     assert answer.szukano_wokol is None
     assert answer.uwagi == ["Nie znalazłem w Polsce miejscowości „Xyzzy”."]
 
 
 def test_a_geocoder_that_is_down_is_a_note_not_an_error(conn: Connection) -> None:
-    answer = search(conn, web(nominatim=OSError("down")), "Suwałki", 15, NOW)
+    answer = search(conn, web(nominatim=OSError("down")), Query("Suwałki", 15, 3), NOW)
 
     assert "spróbuj za chwilę" in answer.uwagi[0]
 
@@ -76,7 +76,14 @@ def test_a_geocoder_that_is_down_is_a_note_not_an_error(conn: Connection) -> Non
 def test_bans_that_could_not_be_checked_are_a_warning(conn: Connection) -> None:
     store.replace_wydzielenia(conn, [stand("pine", LON, LAT)])
 
-    answer = search(conn, web(bans=OSError("down")), "Suwałki", 15, NOW)
+    answer = search(conn, web(bans=OSError("down")), Query("Suwałki", 15, 3), NOW)
 
     assert [m.adres_lesny for m in answer.miejsca] == ["pine"]
     assert any("zakazów wstępu" in uwaga for uwaga in answer.uwagi)
+
+
+def test_more_spots_can_be_asked_for(conn: Connection) -> None:
+    store.replace_wydzielenia(conn, [stand(f"pine-{i}", LON, LAT + 0.02 * i) for i in range(6)])
+
+    assert len(search(conn, web(), Query("Suwałki", 15, 3), NOW).miejsca) == 3
+    assert len(search(conn, web(), Query("Suwałki", 15, 5), NOW).miejsca) == 5
