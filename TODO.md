@@ -109,14 +109,14 @@ sprawdzimy licencji danych.
 
 - [x] Projekt w `suwalski-platform` (Argo, baza `grzyby` we wspólnym klastrze CloudNativePG,
       tunel Cloudflare — **publiczny**, bez Cloudflare Access; `/mcp` chroni wspólny klucz).
-- [ ] Cache wyników na dzień (ochrona przed nadużyciem; limit zapytań — „Przed publicznym startem”).
 - [ ] Domena `gdzie-na-grzyby.pl` (sprawdzić cenę **odnowienia**, nie tylko pierwszego roku).
 - [ ] Strona: czym to jest, przypisanie źródeł danych (BDL, Open-Meteo, GDOŚ, mapa) i
       **instrukcja instalacji konektora** — najpierw Claude (claude.ai i Claude Code), potem przełącznik
       instrukcji Claude / ChatGPT. Treść zależy od sposobu dostępu (niżej): dziś to wspólny klucz
       w nagłówku (`just claude-connector`), dla innych ludzi będzie inaczej.
-- [ ] **Dostęp dla innych ludzi zamiast wspólnego klucza** — do dyskusji, od najmniejszego
-      tarcia dla użytkownika:
+- [ ] **Konta / klucze na osobę — na później.** Na start publicznie bez kont („Przed publicznym
+      startem”); wrócić, gdy będą potrzebne (zgłoszenia, płatny dostęp, nadużycia). Warianty,
+      od najmniejszego tarcia dla użytkownika:
       1. **OAuth z MCP** — Claude i ChatGPT przy dodawaniu konektora same otwierają okno
          logowania serwera (specyfikacja MCP, autoryzacja OAuth 2.1): użytkownik klika
          „Połącz”, loguje się raz, niczego nie kopiuje. Logowanie jest **nasze** (Claude/OpenAI
@@ -132,7 +132,35 @@ sprawdzimy licencji danych.
 
 ## Przed publicznym startem
 
-Dopóki adresu używa tylko właściciel — nie blokuje. Zanim adres trafi do innych ludzi:
+Dopóki adresu używa tylko właściciel — nie blokuje. Zanim adres trafi do innych ludzi.
+Na start **publicznie, bez kont i bez klucza** (ustalone 4.10.2026).
+
+**Ważne dla limitów:** zapytania wszystkich użytkowników Claude przychodzą z serwerów Anthropic
+(ChatGPT — z serwerów OpenAI), nie z ich komputerów. Limit na IP w Cloudflare nie odróżni więc
+użytkowników — to tylko hojny bezpiecznik przed kimś, kto wali w `/mcp` wprost. Prawdziwa
+ochrona jest w aplikacji, przy tym, co kosztuje.
+
+Zabezpieczenia w aplikacji (to repo):
+
+- [ ] **Dzienny limit nowych kwadratów** dla całego serwisu (propozycja: 300 dziennie) — nowa
+      okolica to ~15 s i ~16 kwadratów z BDL; po przekroczeniu nowa okolica dostaje uwagę
+      „spróbuj jutro”, znane działają dalej. Chroni BDL i bazę przed ściąganiem pół Polski.
+- [ ] **Kolejka do Nominatim: 1 zapytanie na sekundę** dla całego serwera (zasady Nominatim;
+      cache w bazie już jest). Przy większym ruchu — własna instancja albo inne geokodowanie.
+- [ ] **Cache gotowych odpowiedzi** dla tej samej miejscowości, listy grzybów, promienia
+      i liczby miejsc (propozycja: godzina) — te same pytania nie liczą się w kółko.
+- [ ] **Open-Meteo** — dziś cache 3 h na kwadrat; przy umiarkowanym ruchu mieści się w darmowym
+      limicie (~10 tys. zapytań dziennie), przy dużym — dłuższy cache albo płatny plan.
+
+Platforma (suwalski-platform):
+
+- [ ] **Reguła rate limiting w Cloudflare na `/mcp`** — hojna (propozycja: 300 zapytań na
+      minutę z IP; darmowy plan ma jedną regułę), zapisana też w TODO suwalski-platform.
+- [ ] **Zdjęcie klucza** — pusta `server.mcpKeySecret` w Application (kod już to obsługuje:
+      brak klucza = brak sprawdzania); potem instrukcja na stronie to sam adres konektora.
+      Przy okazji usunąć sekret `mcp`, `just claude-connector` i opis klucza z README.
+
+Formalności i dane:
 
 - [ ] **Mail do BDL** (`bdl@bdl.lasy.gov.pl`) — informacja o przetwarzaniu danych, wymagana
       regulaminem portalu; w przypisaniu: źródło, czas wytworzenia i pozyskania.
@@ -141,10 +169,14 @@ Dopóki adresu używa tylko właściciel — nie blokuje. Zanim adres trafi do i
 - [ ] **Licencja danych GDOŚ** (parki, rezerwaty) — warunki przypisania.
 - [ ] **Open-Meteo** — darmowe tylko niekomercyjnie, z przypisaniem (CC BY 4.0); sprawdzić
       aktualne warunki i limit zapytań przed większym ruchem.
-- [ ] **Kafelki OSM** — przy realnym ruchu własne źródło kafelków (zasady OSM).
-- [ ] **Limit zapytań w Cloudflare** na `/mcp` (TODO suwalski-platform).
-- [ ] **MCP Apps w ChatGPT** — czy pokazuje mapkę i czy jego konektor umie wysłać nagłówek
-      z kluczem (jeśli nie: `?key=`).
+- [ ] **Kafelki OSM** — zasady OpenStreetMap zakazują dużego ruchu, a widżet pobiera kafelki
+      z przeglądarki każdego użytkownika. Na start zostaje OSM; przy pierwszych oznakach ruchu
+      inne źródło (np. MapTiler, Stadia — darmowe plany z kluczem) i nowy host w CSP widżetu.
+- [ ] **Prywatność** — nie zbieramy danych osobowych (w logach nginx adresy IP serwerów Anthropic
+      i OpenAI, w bazie nazwy miejscowości); krótka notka na stronie.
+- [ ] **MCP Apps w ChatGPT** — czy pokazuje mapkę (bez klucza odpada pytanie o nagłówek).
+- [ ] **Kolejność** (propozycja): zabezpieczenia w aplikacji → licencja GDOŚ i przypisanie →
+      reguła Cloudflare i zdjęcie klucza → mail do BDL (właściciel) → strona z instrukcją.
 
 ## Później / może
 
