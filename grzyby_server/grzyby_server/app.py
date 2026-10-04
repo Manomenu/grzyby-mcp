@@ -4,9 +4,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import BaseModel
 
 from grzyby_server import db
+from grzyby_server.miejsca.tools import server as mcp
 from grzyby_server.settings import settings
 
 # Routes are declared without an /api prefix. The prefix belongs to the edge — the vite
@@ -23,7 +25,9 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     with db.pool.connection() as conn:
         for name in db.migrate(conn):
             log.info("applied migration %s", name)
-    yield
+    # The MCP transport's own lifespan: a mounted app's lifespan never runs on its own.
+    async with mcp.session_manager.run():
+        yield
     db.pool.close()
 
 
@@ -46,5 +50,16 @@ class Health(BaseModel):
 def health() -> Health:
     return Health(status="ok")
 
+
+# The MCP endpoint for chatbots, at /mcp — not under /api: it is the product's public address
+# (nginx and the vite proxy pass it through unchanged). Stateless with JSON responses: every
+# request stands alone, so any replica can answer and nothing is kept between calls.
+mcp_http = mcp.streamable_http_app(
+    streamable_http_path="/mcp",
+    stateless_http=True,
+    json_response=True,
+    transport_security=TransportSecuritySettings(allowed_hosts=settings.mcp_allowed_hosts),
+)
+app.router.routes.extend(mcp_http.routes)
 
 # Features add their routers here: app.include_router(notes) — and a layer in pyproject.toml.

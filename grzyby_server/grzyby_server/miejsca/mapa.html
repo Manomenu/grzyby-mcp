@@ -1,0 +1,87 @@
+<!doctype html>
+<!--
+  The map a chatbot shows under the answer of `gdzie_na_grzyby` (MCP Apps, ui://grzyby/mapa.html).
+  The host renders it in a sandboxed iframe and hands it the tool's result; the CSP in tools.py
+  lists the only hosts it may load from. Versions are pinned like every dependency here.
+-->
+<html lang="pl">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.12.0/dist/maplibre-gl.css" />
+        <style>
+            :root {
+                color-scheme: light dark;
+                font-family: system-ui, sans-serif;
+            }
+            body {
+                margin: 0;
+            }
+            #map {
+                height: 360px;
+            }
+            ul {
+                margin: 0;
+                padding: 8px 12px;
+                list-style: none;
+                font-size: 14px;
+            }
+            li + li {
+                margin-top: 6px;
+            }
+            small {
+                display: block;
+                padding: 0 12px 8px;
+                opacity: 0.7;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="map"></div>
+        <ul id="list"></ul>
+        <small id="sources"></small>
+        <script type="module">
+            import { App } from "https://unpkg.com/@modelcontextprotocol/ext-apps@2.0.3/dist/src/app-with-deps.js";
+            import maplibregl from "https://unpkg.com/maplibre-gl@6.12.0/dist/maplibre-gl.mjs";
+
+            // Suwałki until the first result arrives.
+            const map = new maplibregl.Map({
+                container: "map",
+                style: "https://tiles.openfreemap.org/styles/liberty",
+                center: [22.93, 54.1],
+                zoom: 10,
+            });
+
+            function show(answer) {
+                const list = document.getElementById("list");
+                list.replaceChildren();
+                const bounds = new maplibregl.LngLatBounds();
+                for (const spot of answer.miejsca) {
+                    new maplibregl.Marker({ color: "#6b3e26" })
+                        .setLngLat([spot.lon, spot.lat])
+                        .setPopup(new maplibregl.Popup().setText(spot.nazwa))
+                        .addTo(map);
+                    bounds.extend([spot.lon, spot.lat]);
+
+                    const item = document.createElement("li");
+                    const link = document.createElement("a");
+                    link.href = spot.trasa;
+                    link.target = "_blank";
+                    link.rel = "noopener";
+                    link.textContent = "trasa";
+                    item.append(`${spot.nazwa} — ${spot.dlaczego} `, link);
+                    list.append(item);
+                }
+                if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: 60, maxZoom: 13 });
+                document.getElementById("sources").textContent = answer.zrodla;
+            }
+
+            const app = new App({ name: "grzyby-mapa", version: "0.1.0" });
+            // Before connect(): the host may send the result right away.
+            app.ontoolresult = (result) => {
+                if (result.structuredContent) show(result.structuredContent);
+            };
+            app.connect();
+        </script>
+    </body>
+</html>
