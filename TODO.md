@@ -30,23 +30,28 @@ sprawdzimy licencji danych.
 ## 1. MVP — jedna okolica, jedno narzędzie
 
 - [x] PostGIS lokalnie, w CI i w `just up` (obraz `postgis/postgis`, migracja `001_postgis.sql`).
-- [ ] **PostGIS na klastrze — przed najbliższym wdrożeniem grzyby.** Zmiana jest w roboczym
-      drzewie suwalski-platform (obraz `shared` → `ghcr.io/cloudnative-pg/postgis`, rozszerzenie
-      w zasobie `Database`); commit, push i synchronizacja Argo (`shared` restartuje się na
-      chwilę), dopiero potem grzyby z `001_postgis.sql` — inaczej serwer nie wstanie.
-- [ ] Import drzewostanów i zakazów z BDL do PostGIS dla okolicy pilotażowej (skrypt,
-      powtarzalny, raz na jakiś czas).
+- [x] PostGIS na klastrze (obraz `shared` → `ghcr.io/cloudnative-pg/postgis`, rozszerzenie
+      w zasobie `Database` bazy `grzyby`; 4.10.2026).
+- [x] Import drzewostanów (BDL), parków i rezerwatów (GDOŚ) do PostGIS — `lasy/importer.py`,
+      CronJob raz w miesiącu, lokalnie `just import`. **Po pierwszym wdrożeniu** odpalić raz
+      ręcznie: `kubectl -n grzyby create job --from=cronjob/grzyby-importer grzyby-importer-now`.
+- [x] Zakazy wstępu (BDL) na żywo: cały kraj, pobierane przy zapytaniu, ważne 4 godziny
+      (`lasy/zakazy.py`); gdy BDL nie odpowiada — stare zakazy i ostrzeżenie w odpowiedzi.
 - [ ] Pogoda z Open-Meteo: opady, temperatura i wilgotność gleby z ostatnich ~30 dni
       (`past_days`), raz dziennie albo przy zapytaniu z cache na dzień.
-- [ ] **Wynik punktowy** dla wydzielenia: gatunek drzew × opady z ostatnich 2–3 tygodni ×
-      temperatura × pora roku. Prosty, czytelny wzór — żadnego AI. Każdy składnik ma
-      opis „dlaczego”, który trafia do odpowiedzi.
-- [ ] Wyłączenie miejsc, gdzie nie wolno: zakazy wstępu, parki narodowe, rezerwaty.
-- [ ] Narzędzie MCP `gdzie_na_grzyby(miejsce, promien_km)` → 3 najlepsze miejsca: mapka,
-      uzasadnienie, link `https://www.google.com/maps/dir/?api=1&destination=<lat>,<lng>`.
-- [ ] Geokodowanie „miejsca” (nazwa miejscowości → współrzędne).
-- [ ] Testy: wzór punktowy na przykładowych danych; narzędzie MCP end-to-end na nagranych
-      odpowiedziach BDL/IMGW.
+- [~] **Wynik punktowy** dla wydzielenia (`miejsca/scoring.py`): jest część stała — gatunek ×
+      siedlisko × wiek × wielkość × odległość, każdy składnik z „dlaczego”. **Zostaje:** opady
+      z ostatnich 2–3 tygodni, temperatura, wilgotność gleby, pora roku.
+- [x] Wyłączenie miejsc, gdzie nie wolno: zakazy wstępu, parki narodowe, rezerwaty (GDOŚ
+      i `forest_fun = REZ` w BDL); drzewostan stykający się z takim obszarem też odpada.
+- [x] Narzędzie MCP `gdzie_na_grzyby(miejscowosc, promien_km)` → 3 najlepsze miejsca, co
+      najmniej 1 km od siebie: mapka, uzasadnienie, link do trasy, uwagi, źródła.
+- [x] Geokodowanie nazwy miejscowości — Nominatim, odpowiedzi zapamiętane w bazie na stałe
+      (`miejsca/geocoding.py`).
+- [x] Testy: wzór punktowy, import, zakazy, geokodowanie i wyszukiwanie na prawdziwym
+      PostgreSQL, z udawanymi odpowiedziami usług (`tests/fake_web.py`).
+- [ ] Widżet rysuje wielokąty drzewostanów, nie tylko znaczniki (wymaga geometrii
+      w odpowiedzi — pilnować limitu ~150 000 znaków, `docs/mcp-apps.md`).
 
 ## 2. Sprawdzian w terenie
 

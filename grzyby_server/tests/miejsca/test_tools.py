@@ -6,9 +6,12 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from psycopg_pool import ConnectionPool
 
+from grzyby_server import db
 from grzyby_server.app import mcp_http
-from grzyby_server.miejsca.model import trasa
+from grzyby_server.miejsca import tools
+from grzyby_server.miejsca.model import Answer, Miejsce
 from grzyby_server.miejsca.tools import MAP_HTML, MAP_URI
 
 # Streamable HTTP: the client accepts both, the server answers with JSON (json_response=True).
@@ -40,15 +43,41 @@ def test_the_tool_is_listed_with_its_map(client: TestClient) -> None:
     assert tool["_meta"]["ui/resourceUri"] == MAP_URI
 
 
-def test_the_tool_answers_with_a_spot_and_the_way_there(client: TestClient) -> None:
+def test_the_tool_answers_in_text_and_as_data_for_the_map(
+    client: TestClient, pool: ConnectionPool, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The search has tests of its own (test_search.py); here only what MCP makes of its answer.
+    spot = Miejsce(nazwa="Las sosnowy", lat=54.1, lon=22.9, dlaczego="sosna.", trasa="https://maps.example", adres_lesny="a")
+    asked: list[tuple[str, int]] = []
+
+    def search(_conn: object, _get_json: object, miejscowosc: str, promien_km: int, _now: object) -> Answer:
+        asked.append((miejscowosc, promien_km))
+        return Answer(szukano_wokol="Suwałki", promien_km=promien_km, miejsca=[spot], uwagi=[], zrodla="BDL.")
+
+    monkeypatch.setattr(tools, "search", search)
+    monkeypatch.setattr(db, "pool", pool)
+
     result = rpc(client, "tools/call", {"name": "gdzie_na_grzyby", "arguments": {"miejscowosc": "Suwałki"}})
 
-    spot = result["structuredContent"]["miejsca"][0]
-    assert spot["trasa"] == trasa(spot["lat"], spot["lon"])
-    assert "Bank Danych o Lasach" in result["structuredContent"]["zrodla"]
+    assert asked == [("Suwałki", 15)]
+    assert result["structuredContent"]["miejsca"][0]["trasa"] == "https://maps.example"
     # The readable form for the chatbot and for clients without the map — not a JSON dump.
-    assert result["content"][0]["text"].startswith(f"**{spot['nazwa']}**")
-    assert spot["trasa"] in result["content"][0]["text"]
+    assert "**Las sosnowy**" in result["content"][0]["text"]
+
+
+def test_the_radius_is_limited(client: TestClient) -> None:
+    response = client.post(
+        "/mcp",
+        headers=HEADERS,
+        json={
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {"name": "gdzie_na_grzyby", "arguments": {"miejscowosc": "Suwałki", "promien_km": 500}},
+        },
+    )
+
+    assert response.json()["result"]["isError"] is True
 
 
 def test_the_map_address_changes_with_its_content() -> None:

@@ -1,25 +1,28 @@
-"""The MCP server: one tool for now, answering with a fixed stand near Suwałki.
+"""The MCP server: one tool, the best forest stands near a place, with a map.
 
-A "hello world" that proves the whole chain — chatbot → /mcp → tool → map — before the real
-scoring arrives (TODO, stage 1). The stand is real: Nadleśnictwo Suwałki, from the Bank Danych
-o Lasach sample.
+The search itself is search.py; here it is wired to MCP — the database connection, the
+network, the clock, and the two forms of the answer.
 """
 
 import hashlib
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
 
 from mcp.server.apps import Apps, ResourceCsp
 from mcp.server.mcpserver import MCPServer
 from mcp_types import CallToolResult, TextContent
+from pydantic import Field
 
-from grzyby_server.miejsca.model import Miejsce, Odpowiedz, opis, trasa
+from grzyby_server import db
+from grzyby_server.fetch import get_json
+from grzyby_server.miejsca.model import Answer, as_text
+from grzyby_server.miejsca.search import search
 
 MAP_HTML = Path(__file__).with_name("mapa.html").read_text(encoding="utf-8")
 # The content's hash is part of the address: hosts cache a widget by its URI (Claude kept showing
 # a broken old version of mapa.html after it was fixed), so every change gets a new one.
 MAP_URI = f"ui://grzyby/mapa-{hashlib.sha256(MAP_HTML.encode()).hexdigest()[:12]}.html"
-SOURCES = "Drzewostany: Bank Danych o Lasach (bdl.lasy.gov.pl), stan na 2026, licencja CC BY 4.0."
 
 apps = Apps()
 
@@ -33,38 +36,21 @@ apps = Apps()
     name="gdzie_na_grzyby",
     title="Gdzie na grzyby",
     description=(
-        "Wskazuje lasy w okolicy podanej miejscowości, w których teraz najpewniej rosną grzyby, "
-        "z uzasadnieniem i linkiem do trasy. Na razie działa tylko dla okolic Suwałk."
+        "Wskazuje do trzech najbardziej obiecujących dla grzybiarza drzewostanów w promieniu "
+        "promien_km od podanej miejscowości: gatunek drzew, wiek, siedlisko, uzasadnienie i link "
+        "do trasy. Pomija parki narodowe, rezerwaty i lasy z aktualnym zakazem wstępu. Na razie "
+        "zna tylko okolice Suwałk i Wigier, a pogody jeszcze nie bierze pod uwagę."
     ),
 )
-def gdzie_na_grzyby(miejscowosc: str, promien_km: int = 15) -> Annotated[CallToolResult, Odpowiedz]:
-    """Spots near `miejscowosc` within `promien_km`. Hello world: always the same stand.
-
-    Two forms of one answer: readable text (the chatbot quotes it; a client without the map shows
-    only it) and the data the map draws (structuredContent, schema = Odpowiedz)."""
-    _ = (miejscowosc, promien_km)
-    odpowiedz = _hello_world()
-    return CallToolResult(content=[TextContent(type="text", text=opis(odpowiedz))], structured_content=odpowiedz.model_dump(mode="json"))
-
-
-def _hello_world() -> Odpowiedz:
-    lat, lon = 54.051247, 22.965699
-    return Odpowiedz(
-        miejsca=[
-            Miejsce(
-                nazwa="Bór sosnowy, 76 lat, 28 ha",
-                lat=lat,
-                lon=lon,
-                dlaczego=(
-                    "Sosna w wieku 76 lat na borze mieszanym świeżym — typowe miejsce borowika, "
-                    "podgrzybka i kurki. Las gospodarczy, poza parkiem narodowym."
-                ),
-                trasa=trasa(lat, lon),
-                adres_lesny="01-26-2-01-215-a-00",
-            )
-        ],
-        zrodla=SOURCES,
-    )
+def gdzie_na_grzyby(
+    miejscowosc: Annotated[str, Field(description="Nazwa miejscowości w Polsce, np. „Suwałki” albo „Bryzgiel”")],
+    promien_km: Annotated[int, Field(ge=1, le=30, description="Promień poszukiwań w km")] = 15,
+) -> Annotated[CallToolResult, Answer]:
+    """Two forms of one answer: readable text (the chatbot quotes it; a client without the map
+    shows only it) and the data the map draws (structuredContent, schema = Answer)."""
+    with db.pool.connection() as conn:
+        answer = search(conn, get_json, miejscowosc, promien_km, datetime.now(UTC))
+    return CallToolResult(content=[TextContent(type="text", text=as_text(answer))], structured_content=answer.model_dump(mode="json"))
 
 
 apps.add_html_resource(

@@ -12,9 +12,9 @@ plus tylko to, czego wymaga mapa. Każdy nowy element ma powód obok.
 | Aplikacja HTTP | **FastAPI** (MCP zamontowany jako pod-aplikacja) + strona statyczna | Jak w automat-operat: `/healthz`, smoke test, ten sam szablon chartu. |
 | Baza | **PostgreSQL + PostGIS** w CloudNativePG (`shared`) | Pytania „lasy w promieniu X km”, przecięcia z zakazami — to robota dla PostGIS, nie dla Pythona. CNPG ma obrazy z PostGIS. Lokalnie i w CI już jest (`postgis/postgis`, migracja `001_postgis.sql`). |
 | Dostęp do bazy | **psycopg 3**, czyste SQL | Jak w automat-operat; zapytania przestrzenne i tak pisze się w SQL. |
-| Import BDL | **GDAL `ogr2ogr`** z WFS do PostGIS, uruchamiany skryptem / Jobem | Standardowe narzędzie do WFS → PostGIS, zero własnego parsowania GML. |
+| Import BDL | **Python** (`lasy/importer.py`): GeoJSON z OGC API BDL i WFS GDOŚ wprost do PostGIS (`ST_GeomFromGeoJSON`), **CronJob** raz w miesiącu | Usługi i tak dają GeoJSON w WGS84, więc GDAL (duży obraz) niepotrzebny; ~80 MB i ~15 s na okolicę pilotażową. |
 | Pogoda | **httpx** → Open-Meteo (`past_days=30`, opady, temperatura, wilgotność gleby) | Bez kluczy i opłat przy użyciu niekomercyjnym; historia w jednym zapytaniu, więc bez własnego zbierania (`rozpoznanie-danych.md`). |
-| Geokodowanie | **Nominatim** (OSM), z cache w bazie | Darmowe; polityka użycia wymaga niskiego ruchu i własnego User-Agenta — cache to załatwia. |
+| Geokodowanie | **Nominatim** (OSM), z cache w bazie (`geocoding_cache`) | Darmowe; polityka użycia wymaga niskiego ruchu i własnego User-Agenta — cache to załatwia. |
 | Mapka w odpowiedzi | **MCP Apps**: zasób UI = jeden plik HTML z **Leaflet** | Interaktywny widżet w czacie. Bez Reacta — jedna mapa z kilkoma wielokątami nie potrzebuje frameworka. MapLibre (WebGL) odpada: piaskownica Claude blokuje jej worker `blob:` (`docs/mcp-apps.md`). |
 | Podkład mapy | **Kafelki rastrowe OpenStreetMap**, ew. ortofoto z Geoportalu (WMS) | Darmowe, bez klucza; przy realnym ruchu zasady OSM wymagają własnego źródła kafelków. |
 | Zapasowa odpowiedź | Statyczny obrazek mapy (PNG) + link do trasy | Dla klientów bez MCP Apps — odpowiedź musi mieć sens i bez widżetu. |
@@ -37,5 +37,5 @@ plus tylko to, czego wymaga mapa. Każdy nowy element ma powód obok.
 
 - **Modelu językowego po stronie serwera** — myśli chatbot użytkownika; my dajemy dane i mapę.
 - **Reacta / Mantine** — dopóki strona to instrukcja instalacji, a widżet to jedna mapa.
-- **Kolejki, cache Redis, workerów** — jeden CronJob dziennie i tabela z wynikami wystarczą.
+- **Kolejki, cache Redis, workerów** — jeden CronJob miesięcznie i tabele w PostGIS wystarczą.
 - **Uczenia maszynowego** — bez danych „gdzie były grzyby” nie ma na czym uczyć.

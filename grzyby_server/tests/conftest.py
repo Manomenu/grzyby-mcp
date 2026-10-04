@@ -45,6 +45,16 @@ def pool(database_url: str) -> Iterator[ConnectionPool]:
 
 
 @pytest.fixture
+def conn(pool: ConnectionPool) -> Iterator[Connection]:
+    """A connection whose changes are all rolled back at the end, so tests leave no rows behind.
+    Code under test may open its own transactions; they nest as savepoints."""
+    with pool.connection() as conn, conn.transaction():
+        yield conn
+        # Ends the transaction by rolling it back; psycopg swallows this exception.
+        raise psycopg.Rollback
+
+
+@pytest.fixture
 def client(pool: ConnectionPool) -> Iterator[TestClient]:
     """The app on the test database. A feature's tests empty its tables here first."""
 

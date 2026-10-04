@@ -25,6 +25,14 @@ server:
     requests: { cpu: 50m, memory: 128Mi }
     limits: { memory: 384Mi }
 
+# Monthly import of forest data (templates/importer.yaml). Peaks at ~80 MB for ~15 s on the
+# pilot area.
+importer:
+  schedule: "0 4 1 * *" # 04:00 on the 1st of every month, Polish time
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 384Mi }
+
 web:
   replicas: 1
   port: 8080
