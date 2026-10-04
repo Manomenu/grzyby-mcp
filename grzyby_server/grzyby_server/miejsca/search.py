@@ -11,7 +11,8 @@ from zoneinfo import ZoneInfo
 from psycopg import Connection
 
 from grzyby_server.fetch import GetJson
-from grzyby_server.lasy import importer, store, zakazy
+from grzyby_server.lasy import store, tiles, zakazy
+from grzyby_server.lasy.model import tiles_around
 from grzyby_server.miejsca import geocoding, map_data, scoring
 from grzyby_server.miejsca.model import Answer, Miejsce, route_url
 
@@ -32,12 +33,15 @@ def search(conn: Connection, get_json: GetJson, query: Query, now: datetime) -> 
     try:
         place = geocoding.geocode(conn, get_json, miejscowosc)
     except (OSError, ValueError, KeyError):
-        return _no_spots(conn, promien_km, f"Nie udało się teraz sprawdzić, gdzie leży „{miejscowosc}” — spróbuj za chwilę.")
+        return _no_spots(promien_km, f"Nie udało się teraz sprawdzić, gdzie leży „{miejscowosc}” — spróbuj za chwilę.")
     if place is None:
-        return _no_spots(conn, promien_km, f"Nie znalazłem w Polsce miejscowości „{miejscowosc}”.")
+        return _no_spots(promien_km, f"Nie znalazłem w Polsce miejscowości „{miejscowosc}”.")
 
     zakazy_at = zakazy.refresh(conn, get_json, now)
     radius_m = promien_km * 1000
+    around = tiles_around(place.lat, place.lon, radius_m)
+    # A first question about an area brings its forest data in: a few seconds, once.
+    missing = tiles.ensure(conn, get_json, around, now)
     candidates = store.wydzielenia_within(conn, place.lat, place.lon, radius_m)
     scores = [scoring.score(w, radius_m) for w in candidates]
     picked = scoring.pick(scores, query.ile_miejsc)
@@ -45,9 +49,16 @@ def search(conn: Connection, get_json: GetJson, query: Query, now: datetime) -> 
 
     uwagi: list[str] = []
     if not candidates:
-        uwagi.append(f"W promieniu {promien_km} km nie mam lasów, do których wolno wejść — na razie znam tylko okolice Suwałk i Wigier.")
+        uwagi.append(
+            f"W promieniu {promien_km} km nie ma lasów państwowych, do których wolno wejść — znam tylko Lasy Państwowe "
+            "(Bank Danych o Lasach); lasy prywatne i gminne są poza moją wiedzą. Spróbuj większego promienia."
+        )
     elif not picked:
         uwagi.append("W okolicy są tylko lasy mało obiecujące dla grzybiarza (młodniki).")
+    if missing:
+        uwagi.append(
+            "Części okolicy nie udało się teraz pobrać z Banku Danych o Lasach — wyniki i mapa mogą być niepełne; spróbuj za chwilę."
+        )
     if mapa.pominiete:
         uwagi.append(f"Mapa pokazuje {len(mapa.drzewostany.wynik)} najlepszych drzewostanów; {mapa.pominiete} słabszych się nie zmieściło.")
     if zakazy_at is None or now - zakazy_at >= zakazy.FRESH_FOR:
@@ -70,15 +81,14 @@ def search(conn: Connection, get_json: GetJson, query: Query, now: datetime) -> 
         promien_km=promien_km,
         miejsca=miejsca,
         uwagi=uwagi,
-        zrodla=attribution(conn, data_year, zakazy_at),
+        zrodla=attribution(data_year, store.oldest_fetch(conn, around), zakazy_at),
         mapa=mapa,
     )
 
 
-def attribution(conn: Connection, data_year: int | None, zakazy_at: datetime | None) -> str:
+def attribution(data_year: int | None, wydzielenia_at: datetime | None, zakazy_at: datetime | None) -> str:
     """BDL's terms want the source, when the data was made and when it was fetched;
     OpenStreetMap's licence wants its name next to what Nominatim found."""
-    wydzielenia_at = store.fetched_at(conn, importer.STANDS)
     parts = [
         "Drzewostany: Bank Danych o Lasach (bdl.lasy.gov.pl)"
         + (f", stan na {data_year} r." if data_year else "")
@@ -91,5 +101,5 @@ def attribution(conn: Connection, data_year: int | None, zakazy_at: datetime | N
     return "; ".join(parts) + "."
 
 
-def _no_spots(conn: Connection, promien_km: int, uwaga: str) -> Answer:
-    return Answer(szukano_wokol=None, promien_km=promien_km, miejsca=[], uwagi=[uwaga], zrodla=attribution(conn, None, None))
+def _no_spots(promien_km: int, uwaga: str) -> Answer:
+    return Answer(szukano_wokol=None, promien_km=promien_km, miejsca=[], uwagi=[uwaga], zrodla=attribution(None, None, None))

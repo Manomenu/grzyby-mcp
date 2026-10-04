@@ -43,8 +43,9 @@ apps = Apps()
         "promien_km od podanej miejscowości: gatunek drzew, wiek, siedlisko, uzasadnienie i link "
         "do trasy. Pomija parki narodowe, rezerwaty i lasy z aktualnym zakazem wstępu. Mapa pod "
         "odpowiedzią koloruje wszystkie drzewostany w promieniu według oceny, z trybami: wynik, "
-        "drzewa, wiek, siedlisko; kliknięcie w las pokazuje, skąd jego ocena. Na razie zna tylko "
-        "okolice Suwałk i Wigier (lasy państwowe), a pogody jeszcze nie bierze pod uwagę."
+        "drzewa, wiek, siedlisko; kliknięcie w las pokazuje, skąd jego ocena. Działa w całej Polsce, "
+        "ale zna tylko Lasy Państwowe; pierwsze pytanie o nową okolicę trwa kilka sekund, bo "
+        "dane dopiero przychodzą. Pogody jeszcze nie bierze pod uwagę."
     ),
 )
 def gdzie_na_grzyby(

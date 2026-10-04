@@ -1,64 +1,52 @@
-"""The monthly import: forest stands from BDL, national parks and reserves from GDOŚ.
+"""The monthly refresh of forest data: every tile fetched so far, again (lasy/tiles.py).
 
-Run by the chart's CronJob (and `just import` on a laptop):
+Stands change once a year and protected areas hardly ever; the tiles come in on demand, so the
+job's work grows with the places people ask about, not with Poland. Entry bans change daily and
+are not here — zakazy.py fetches them when they are asked for. Run by the chart's CronJob:
 
-    python -m grzyby_server.lasy.importer
-
-Stands change once a year and protected areas hardly ever, so once a month is plenty. Entry
-bans change daily and are not imported here — zakazy.py fetches them when they are asked for.
+    python -m grzyby_server.lasy.importer               # refresh every fetched tile
+    python -m grzyby_server.lasy.importer --benchmark   # fetch the benchmark areas (`just import`)
 """
 
 import logging
+import sys
+from collections.abc import Sequence
 from datetime import UTC, datetime
 
 import psycopg
-from psycopg import Connection
 
 from grzyby_server import db
-from grzyby_server.fetch import GetJson, get_json
-from grzyby_server.lasy import sources, store
-from grzyby_server.lasy.model import ObszarKind
+from grzyby_server.fetch import get_json
+from grzyby_server.lasy import store, tiles
+from grzyby_server.lasy.model import tiles_around
 from grzyby_server.settings import settings
 
 log = logging.getLogger(__name__)
 
-STANDS = "bdl_wydzielenia"
-PROTECTED = "gdos_obszary_chronione"
+# Three areas in three RDLPs, far apart — pine country by Suwałki (Białystok), the south-east by
+# Chełm (Lublin), the coast by Gdańsk — what a laptop and the checks work with, 15 km around.
+BENCHMARK = {"Suwałki": (54.10, 22.93), "Chełm": (51.14, 23.47), "Gdańsk": (54.35, 18.65)}
+BENCHMARK_RADIUS_M = 15_000
 
 
-def import_all(conn: Connection, get_json: GetJson, now: datetime) -> dict[str, int]:
-    """Fetches and replaces everything in one transaction: until it commits, the tool goes on
-    reading the previous data, and a failure anywhere leaves that data in place."""
-    with conn.transaction():
-        counts = {
-            "wydzielenia": store.replace_wydzielenia(conn, sources.fetch_wydzielenia(get_json)),
-            # The park layer has each park's buffer zone (otulina) as a feature of its own; picking
-            # is allowed there.
-            "parki": store.replace_obszary(
-                conn,
-                ObszarKind.PARK_NARODOWY,
-                [
-                    f
-                    for f in sources.fetch_obszary_chronione(get_json, "GDOS:ParkiNarodowe")
-                    if "otulina" not in f["properties"]["nazwa"].lower()
-                ],
-            ),
-            "rezerwaty": store.replace_obszary(conn, ObszarKind.REZERWAT, sources.fetch_obszary_chronione(get_json, "GDOS:Rezerwaty")),
-        }
-        store.record_fetch(conn, STANDS, now)
-        store.record_fetch(conn, PROTECTED, now)
-    return counts
-
-
-def main() -> None:
+def main(argv: Sequence[str] = sys.argv[1:]) -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    if list(argv) not in ([], ["--benchmark"]):
+        log.error("usage: python -m grzyby_server.lasy.importer [--benchmark]")
+        return 2
     with psycopg.connect(settings.database_url) as conn:
         # The job may run before the server has started on a new version; the migrations are
         # idempotent and locked, so either may apply them.
         db.migrate(conn)
-        counts = import_all(conn, get_json, datetime.now(UTC))
-    log.info("imported %s", ", ".join(f"{name}: {count}" for name, count in counts.items()))
+        if argv:
+            wanted = {tile for lat, lon in BENCHMARK.values() for tile in tiles_around(lat, lon, BENCHMARK_RADIUS_M)}
+        else:
+            wanted = set(store.fetched_tiles(conn))
+        failed = tiles.load(conn, get_json, sorted(wanted, key=lambda tile: tile.id), datetime.now(UTC))
+    log.info("tiles: %d, failed: %d", len(wanted), len(failed))
+    # A failed tile keeps last month's data; the job shows red in the CronJob's history.
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

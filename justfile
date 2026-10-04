@@ -36,10 +36,10 @@ web *args:
 api-types:
     @./scripts/.internal/api-types.sh
 
-# Fill the local database with forest data (BDL stands, GDOŚ parks and reserves) — needs `just db up`
+# Fetch forest data around the benchmark areas (Suwałki, Chełm, Gdańsk) into the local database — needs `just db up`
 [group('dev')]
 import:
-    cd grzyby_server && env -u VIRTUAL_ENV uv run python -m grzyby_server.lasy.importer
+    cd grzyby_server && env -u VIRTUAL_ENV uv run python -m grzyby_server.lasy.importer --benchmark
 
 # What to type into Claude's "Add custom connector" for the production /mcp (prints the key)
 [group('dev')]
@@ -55,9 +55,9 @@ claude-connector:
 up:
     podman compose up -d --build
     @echo "web   http://localhost:8091"
-    @# The database lives in a volume, so the import is needed once per fresh volume, not every time.
+    @# The database lives in a volume; forest data comes in with questions and stays there.
     @podman compose exec -T postgres psql -U grzyby -d grzyby -tAc "SELECT count(*) FROM wydzielenia" 2>/dev/null | grep -qv '^0$' \
-        || echo "no forest data yet — run: just import-up"
+        || echo "no forest data yet — it comes in with the first question, or now: just import-up"
 
 # Rebuild the images without the layer cache, then start (slow, on purpose)
 [group('infra')]
@@ -65,10 +65,10 @@ rebuild:
     podman compose build --no-cache
     @just up
 
-# Fill the stack's database with forest data — the same import the cluster runs monthly
+# The same for the stack's database
 [group('infra')]
 import-up:
-    podman compose run --rm server python -m grzyby_server.lasy.importer
+    podman compose run --rm server python -m grzyby_server.lasy.importer --benchmark
 
 # Stop the stack (images and the database volume stay)
 [group('infra')]

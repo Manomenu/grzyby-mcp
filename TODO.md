@@ -27,21 +27,46 @@ sprawdzimy licencji danych.
       odpada przez CSP piaskownicy). Wnioski i pułapki: [`docs/mcp-apps.md`](docs/mcp-apps.md).
 - [x] **Wybór okolicy pilotażowej** — Suwałki / Wigierski Park Narodowy (park sam w sobie: zbiór zakazany, do potwierdzenia).
 
-## 1. MVP — jedna okolica, jedno narzędzie
+## 1. MVP — jedno narzędzie, cała Polska (Suwałki to punkt odniesienia)
 
 - [x] PostGIS lokalnie, w CI i w `just up` (obraz `postgis/postgis`, migracja `001_postgis.sql`).
 - [x] PostGIS na klastrze (obraz `shared` → `ghcr.io/cloudnative-pg/postgis`, rozszerzenie
       w zasobie `Database` bazy `grzyby`; 4.10.2026).
-- [x] Import drzewostanów (BDL), parków i rezerwatów (GDOŚ) do PostGIS — `lasy/importer.py`,
-      CronJob raz w miesiącu, lokalnie `just import`. **Po pierwszym wdrożeniu** odpalić raz
-      ręcznie: `kubectl -n grzyby create job --from=cronjob/grzyby-importer grzyby-importer-now`.
+- [x] **Dane o lasach na żądanie, cała Polska** (4.10.2026): siatka kwadratów ok. 11 × 10 km
+      (`lasy/tiles.py`) — kwadrat przychodzi z BDL (kolekcja jego RDLP) i GDOŚ przy pierwszym
+      pytaniu o okolicę, równolegle (kilka sekund), potem z bazy. CronJob raz w miesiącu
+      odświeża tylko kwadraty, o które pytano. Lokalnie `just import`: okolice Suwałk, Chełma
+      i Gdańska — punkty odniesienia w trzech RDLP.
 - [x] Zakazy wstępu (BDL) na żywo: cały kraj, pobierane przy zapytaniu, ważne 4 godziny
       (`lasy/zakazy.py`); gdy BDL nie odpowiada — stare zakazy i ostrzeżenie w odpowiedzi.
 - [ ] Pogoda z Open-Meteo: opady, temperatura i wilgotność gleby z ostatnich ~30 dni
       (`past_days`), raz dziennie albo przy zapytaniu z cache na dzień.
+      Wzór pogody uwzględnia **opóźnienie wysypu** (grzyby wychodzą kilka dni po deszczu, nie
+      w dzień deszczu) i **wygaszanie** przy suszy, upale i mrozie (podpatrzone w GrzyboRadarze).
+- [ ] **Data w obecnym narzędziu** — opcjonalny parametr: dzień, na który liczyć ocenę, od
+      3 dni wstecz do 5 dni naprzód (domyślnie dziś). Open-Meteo daje w jednym zapytaniu
+      historię (`past_days`) i prognozę (`forecast_days`), więc wstecz też się da.
+- [ ] **Osobne narzędzie „kiedy jechać?”** — dla miejscowości (i ewentualnie grzyba) ocena na
+      dziś i 5 kolejnych dni, z najlepszym dniem i krótkim „dlaczego” (np. „w środę padało,
+      w sobotę wysyp”); ten sam wzór pogody co wyżej.
 - [~] **Wynik punktowy** dla wydzielenia (`miejsca/scoring.py`): jest część stała — gatunek ×
       siedlisko × wiek × wielkość × odległość, każdy składnik z „dlaczego”. **Zostaje:** opady
       z ostatnich 2–3 tygodni, temperatura, wilgotność gleby, pora roku.
+- [ ] **Rodzaj grzyba** — parametr narzędzia (lista, domyślnie wszystkie jadalne; chatbot
+      wypełnia go z pytania: „gdzie na kurki?”), tabele w `scoring.py` na grzyb (borowik,
+      podgrzybek, kurka, koźlarz, maślak, rydz — każdy z własnymi drzewami, wiekiem i progami
+      pogody), chipy z grzybami w widżecie przeliczające kolory od razu.
+- [ ] **Zdjęcia widżetu** — gdy będą pogoda i rodzaj grzyba (do README i na stronę), na dwóch
+      przykładach:
+      1. Suwałki, 15 km, 10 miejsc, kurki;
+      2. Płociczno-Osiedle, 2 km, 4 miejsca, wszystkie grzyby.
+      Laptop: oba przykłady jeden pod drugim — jeden na pełnym ekranie, drugi w czacie.
+      Telefon: dwa ładne przykłady obok siebie. Narzędzie już jest: udawany host z
+      `grzyby_web/src/miejsca/mapa.e2e.ts` i projekty `laptop` / `phone` w Playwright.
+      Przy okazji **README dla użytkownika, nie dla programisty**: czym to jest, zdjęcia, jak
+      podłączyć w Claude, skąd dane. Wszystko techniczne, co dziś jest tylko w README (stack,
+      komendy `just`, klucz i jego zmiana, Claude Code, praca lokalna), przenieść do `docs/`
+      (np. `docs/dev/README.md`), a z README zostawić jeden link „dla programistów”.
 - [x] Wyłączenie miejsc, gdzie nie wolno: zakazy wstępu, parki narodowe, rezerwaty (GDOŚ
       i `forest_fun = REZ` w BDL); drzewostan stykający się z takim obszarem też odpada.
 - [x] Narzędzie MCP `gdzie_na_grzyby(miejscowosc, promien_km)` → 3 najlepsze miejsca, co
@@ -101,10 +126,7 @@ Dopóki adresu używa tylko właściciel — nie blokuje. Zanim adres trafi do i
 
 ## Później / może
 
-- [ ] Prognoza na kilka dni naprzód (Open-Meteo forecast).
-- [ ] Gatunki grzybów: borowik / podgrzybek / kurka — każdy z własnymi drzewami i progiem.
 - [ ] Zgłoszenia „byłem, były / nie było” od użytkowników — jedyna droga do sprawdzania trafności.
-- [ ] Rozszerzenie z okolicy pilotażowej na województwo / kraj.
 - [x] **Test widżetu mapy w przeglądarce** — `grzyby_web/src/miejsca/mapa.e2e.ts` (w `just e2e`
       i w CI): widżet z prawdziwego serwera przez MCP, pod CSP z jego `_meta.ui.csp`, w piaskownicy
       bez wyskakujących okien, z udawanym hostem; dane `mapa.answer.json` pilnowane modelem `Answer`.

@@ -1,0 +1,86 @@
+from collections.abc import Mapping
+from datetime import UTC, datetime, timedelta
+
+from psycopg import Connection
+
+from grzyby_server.lasy import sources, store, tiles
+from grzyby_server.lasy.model import Tile, tiles_around
+from tests.fake_web import FakeWeb, area, forest_services, stand
+
+NOW = datetime(2026, 10, 4, 12, 0, tzinfo=UTC)
+LAT, LON = 54.15, 23.02  # inside tile 541_153 (22.95-23.10 E), away from its edges
+TILE = Tile(541, 153)
+
+
+def adresy(conn: Connection) -> list[str]:
+    return [a for (a,) in conn.execute("SELECT adres_lesny FROM wydzielenia ORDER BY adres_lesny")]
+
+
+def test_a_tile_asked_about_comes_in_once(conn: Connection) -> None:
+    def reserves(params: Mapping[str, str | int]) -> dict[str, object]:
+        return {"features": [area("Rezerwat", LON + 0.02, LAT)] if params["typeNames"] == "GDOS:Rezerwaty" else []}
+
+    web = FakeWeb(forest_services(stands=[stand("01-12-1-03-226   -a   -00", LON, LAT)], protected=reserves))
+
+    assert tiles.ensure(conn, web, [TILE], NOW) == []
+    assert tiles.ensure(conn, web, [TILE], NOW) == []
+
+    assert adresy(conn) == ["01-12-1-03-226-a-00"]
+    assert conn.execute("SELECT name FROM obszary_chronione").fetchall() == [("Rezerwat",)]
+    # One BDL query (RDLP Białystok) and one per GDOŚ layer — and nothing the second time.
+    assert web.asked(sources.BDL_STANDS.format(rdlp="Bialystok")) == 1
+    assert web.asked(sources.GDOS_WFS) == 2
+    assert store.oldest_fetch(conn, [TILE]) == NOW
+
+
+def test_buffer_zones_of_parks_and_reserves_are_not_kept(conn: Connection) -> None:
+    def gdos(params: Mapping[str, str | int]) -> dict[str, object]:
+        name = "Wigierski Park Narodowy" if params["typeNames"] == "GDOS:ParkiNarodowe" else "Ptasi Raj"
+        return {"features": [area(name, LON, LAT), area(f"{name} - otulina", LON, LAT)]}
+
+    tiles.ensure(conn, FakeWeb(forest_services(protected=gdos)), [TILE], NOW)
+
+    # Both GDOŚ layers carry buffer zones (seen by Gdańsk: "Ptasi Raj - otulina"); picking is
+    # allowed there, so neither is kept.
+    assert conn.execute("SELECT kind, name FROM obszary_chronione ORDER BY kind").fetchall() == [
+        ("park_narodowy", "Wigierski Park Narodowy"),
+        ("rezerwat", "Ptasi Raj"),
+    ]
+
+
+def test_a_stand_across_two_tiles_is_kept_once_in_the_tile_of_its_inner_point(conn: Connection) -> None:
+    # The square reaches from tile 541_153 into 541_154 (east of 23.10°), mostly in the first.
+    edge = stand("edge", 23.0985, LAT)
+    web = FakeWeb(forest_services(stands=[edge]))
+
+    tiles.ensure(conn, web, [TILE, Tile(541, 154)], NOW)
+
+    assert conn.execute("SELECT adres_lesny, tile FROM wydzielenia").fetchall() == [("edge", "541_153")]
+
+
+def test_a_refresh_replaces_a_tiles_stands(conn: Connection) -> None:
+    tiles.ensure(conn, FakeWeb(forest_services(stands=[stand("old", LON, LAT)])), [TILE], NOW)
+
+    tiles.load(conn, FakeWeb(forest_services(stands=[stand("new", LON, LAT)])), store.fetched_tiles(conn), NOW + timedelta(days=30))
+
+    assert adresy(conn) == ["new"]
+    assert store.oldest_fetch(conn, [TILE]) == NOW + timedelta(days=30)
+
+
+def test_a_tile_that_fails_keeps_its_data_and_stops_no_other(conn: Connection) -> None:
+    tiles.ensure(conn, FakeWeb(forest_services(stands=[stand("old", LON, LAT)])), [TILE], NOW)
+    down = FakeWeb(forest_services(stands=OSError("BDL is down")))
+
+    failed = tiles.load(conn, down, [TILE], NOW + timedelta(days=30))
+
+    assert failed == [TILE]
+    assert adresy(conn) == ["old"]
+    assert store.oldest_fetch(conn, [TILE]) == NOW
+
+
+def test_the_tiles_of_a_question_are_fetched_in_parallel_and_all_written(conn: Connection) -> None:
+    around = tiles_around(54.10, 22.93, 15_000)
+
+    assert tiles.ensure(conn, FakeWeb(forest_services()), around, NOW) == []
+
+    assert set(store.fetched_tiles(conn)) == set(around)
