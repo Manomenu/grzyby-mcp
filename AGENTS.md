@@ -56,7 +56,7 @@ every moving part is a part someone has to keep alive.
 
 | Path | Holds |
 | --- | --- |
-| `grzyby_server/` | the HTTP API (FastAPI, PostgreSQL through psycopg, plain SQL). Package in `grzyby_server/grzyby_server/`, tests mirror it in `grzyby_server/tests/` |
+| `grzyby_server/` | the HTTP API and the MCP endpoint (FastAPI, PostgreSQL with PostGIS through psycopg, plain SQL). Package in `grzyby_server/grzyby_server/`, tests mirror it in `grzyby_server/tests/` |
 | `grzyby_server/grzyby_server/migrations/` | numbered SQL migrations, applied at start-up, checksummed (`db.py`) |
 | `grzyby_web/` | the web app (React, Mantine, Vite). Source in `src/`, one folder per feature |
 | `deploy/chart/` | the Helm chart the cluster runs: server, web, ingress and `templates/smoke-test.yaml`, the post-deploy smoke test |

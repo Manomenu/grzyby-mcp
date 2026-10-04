@@ -3,7 +3,7 @@
 Serwer MCP dla chatbotów (Claude, ChatGPT): pytasz „gdzie w okolicy X są teraz grzyby?”, a w
 odpowiedzi dostajesz **mapkę** z zaznaczonym kawałkiem lasu, krótkie uzasadnienie (drzewa,
 opady, temperatura) i link do trasy w Google Maps. Dane: Bank Danych o Lasach (drzewostany,
-zakazy wstępu) i pogoda z IMGW.
+zakazy wstępu) i pogoda z Open-Meteo.
 
 **Stan:** „hello world” MCP. Serwer udostępnia pod `/mcp` narzędzie `gdzie_na_grzyby` z mapką
 (MCP Apps) — na razie zawsze wskazuje ten sam prawdziwy drzewostan pod Suwałkami; prawdziwe
@@ -14,8 +14,8 @@ Projekt hobbystyczny, bez części komercyjnej.
 
 ## Stack
 
-- **Serwer:** Python 3.14, FastAPI, PostgreSQL (psycopg, czyste SQL, migracje w
-  `grzyby_server/grzyby_server/migrations/`).
+- **Serwer:** Python 3.14, FastAPI, SDK `mcp` (MCP Apps), PostgreSQL z PostGIS (psycopg, czyste
+  SQL, migracje w `grzyby_server/grzyby_server/migrations/`).
 - **Web:** React, Mantine, Vite, TypeScript strict.
 - **Uruchamianie:** na hoście (`just server`, `just web`), cały stack w kontenerach
   (`just up`) albo na klastrze k3s przez Argo CD (`deploy/chart/`).

@@ -67,9 +67,29 @@ co do zasady zakazane.
   darmowe niekomercyjnie). Na start: Open-Meteo dla historii + IMGW jako punkt kontrolny.
 - Jedna stacja na całą okolicę — przy obszarze ~30 × 25 km to wystarczy na „rejon tak/nie”.
 
+### Open-Meteo — sprawdzone 4.10.2026, decyzja: tylko Open-Meteo
+
+- `https://api.open-meteo.com/v1/forecast?latitude=…&longitude=…&past_days=30&daily=precipitation_sum,temperature_2m_min,temperature_2m_max&hourly=soil_moisture_0_to_1cm,soil_moisture_3_to_9cm,soil_moisture_9_to_27cm,soil_temperature_6cm&timezone=Europe/Warsaw`
+  — **jedno zapytanie** (0,25 s, 35 KB, bez klucza): dzienne opady i temperatury z 30 dni
+  wstecz (`past_days` do 92) plus prognoza, godzinowa wilgotność gleby [m³/m³] na trzech
+  głębokościach i temperatura gleby.
+- **Zgodne z IMGW:** 4.10 o 7:00 Suwałki — IMGW 12,8 °C / 91,7 % wilgotności, Open-Meteo
+  12,0 °C / 95 %. Opady z 14 dni: 32 mm, z 30 dni: 66 mm.
+- **Siatka co kilka km, nie jedna stacja:** trzy punkty okolicy (Suwałki, okolice Wigier,
+  ~20 km na SE) różnią się o 1,5 °C i 29–32 mm opadu w 14 dni — wartość per obszar, a nie
+  jedna liczba dla całego rejonu.
+- Wilgotność gleby (0–1 cm: 0,10–0,24 w ciągu 30 dni) — sygnał „po deszczu / sucho” wprost,
+  zamiast zgadywać z sumy opadów.
+- Archiwum (`archive-api.open-meteo.com`, reanaliza) jest dzień do tyłu — gdyby kiedyś
+  potrzebna była dłuższa historia.
+- **Wniosek:** IMGW nic nie dodaje poza jednym prawdziwym pomiarem, a własne zbieranie nie
+  jest potrzebne, skoro `past_days` daje historię. Na MVP tylko Open-Meteo; IMGW odpada.
+  Warunki: darmowe niekomercyjnie, CC BY 4.0 (przypisanie „Weather data by Open-Meteo.com”) —
+  sprawdzić przed publicznym startem (TODO).
+
 ## Otwarte pytania
 
 1. Mail do BDL o przetwarzaniu danych (właściciel) — przed publicznym startem, nie przed MVP.
 2. WPN: czy są miejsca, gdzie wolno zbierać grzyby — zapytać park.
 3. Licencja / przypisanie danych GDOŚ.
-4. Open-Meteo vs zbieranie IMGW — decyzja przy pierwszej wersji wzoru punktowego.
+4. ~~Open-Meteo vs zbieranie IMGW~~ — rozstrzygnięte: tylko Open-Meteo (punkt 3).

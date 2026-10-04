@@ -6,15 +6,18 @@ set -euo pipefail
 
 NAME=grzyby-postgres
 VOLUME=grzyby-postgres
-# The major version the cluster runs (CloudNativePG); the minor is pinned like every image here.
-IMAGE=docker.io/library/postgres:17.11
+# What the cluster runs (CloudNativePG's PostGIS image): PostgreSQL 17.11 with PostGIS 3.6.4,
+# pinned by digest because the tag moves with every patch release.
+IMAGE=docker.io/postgis/postgis:17-3.6-alpine@sha256:a8ffa9afeea4ad6eada171fa2afdb57cd3eb90f92ce20156aa2cb8411d70e0cd
 PORT=5443
 USER=grzyby
 DB=grzyby
 
 wait_ready() {
     for _ in $(seq 1 30); do
-        podman exec "$NAME" pg_isready -q -U "$USER" -d "$DB" && return 0
+        # Over TCP: on a fresh volume the image first runs a temporary, socket-only server for
+        # its init scripts, and a socket check would call that one ready.
+        podman exec "$NAME" pg_isready -q -h 127.0.0.1 -U "$USER" -d "$DB" && return 0
         sleep 1
     done
     echo "postgres did not become ready in 30 s — see: just db logs" >&2
@@ -24,6 +27,14 @@ wait_ready() {
 case "${1:-}" in
     up)
         if podman container exists "$NAME"; then
+            # A container keeps the image it was created from; after a change of IMAGE the old
+            # one would start silently (e.g. without PostGIS) and fail the migrations instead.
+            # IDs, not names: podman stores a digest reference in its own spelling. An IMAGE not
+            # pulled yet has no ID here, which counts as a change too.
+            if [ "$(podman container inspect --format '{{.Image}}' "$NAME")" != "$(podman image inspect --format '{{.Id}}' "$IMAGE" 2>/dev/null)" ]; then
+                echo "$NAME runs another image than $IMAGE — \`just db reset\`, then \`just db up\`" >&2
+                exit 1
+            fi
             podman start "$NAME" >/dev/null
         else
             # Published on the loopback only: the password is a development one.

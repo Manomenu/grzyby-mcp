@@ -1,10 +1,10 @@
 """A shared key in front of /mcp — the whole access control, on purpose.
 
 The endpoint is public (chatbots call it from their own servers), so it asks for one secret:
-`?key=…` in the URL — what a chatbot's connector settings can carry — or
-`Authorization: Bearer …` for clients that send headers (Claude Code). No key configured
-(on a laptop) means no check. Rotating it = a new value in the platform repo's setup.sh and the
-new URL in the connector.
+`Authorization: Bearer …` — what Claude's connectors and Claude Code send — or, only for a
+client that cannot send headers, `?key=…` in the URL (it then ends up in logs and history).
+No key configured (on a laptop) means no check. Rotating it = a new value in the platform
+repo's setup.sh, a server restart and the new header in every connector.
 """
 
 import hmac
