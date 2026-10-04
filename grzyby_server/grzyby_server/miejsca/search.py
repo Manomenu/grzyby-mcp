@@ -4,6 +4,7 @@ Everything a failure of an outside service can break ends as a note in the answe
 error: the chatbot can still tell the user what happened and what to check themselves.
 """
 
+import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -13,7 +14,7 @@ from psycopg import Connection
 from grzyby_server.fetch import GetJson
 from grzyby_server.lasy import store, tiles, zakazy
 from grzyby_server.lasy.model import tiles_around
-from grzyby_server.miejsca import geocoding, grzyby, map_data, scoring
+from grzyby_server.miejsca import cache, geocoding, grzyby, map_data, scoring
 from grzyby_server.miejsca.model import Answer, Grzyb, Miejsce, Miesiac, route_url
 from grzyby_server.pogoda import refresh as weather
 from grzyby_server.pogoda import store as weather_store
@@ -21,6 +22,18 @@ from grzyby_server.pogoda.conditions import conditions
 from grzyby_server.pogoda.model import Warunki
 
 POLAND = ZoneInfo("Europe/Warsaw")
+
+REFUSED = {
+    tiles.Refusal.DAILY_LIMIT: (
+        "Na dziś wyczerpałem limit pobierania nowych okolic z Banku Danych o Lasach, a tej okolicy jeszcze nie znam "
+        "(albo znam tylko jej część) — wyniki i mapa mogą być puste lub niepełne. Spróbuj jutro; okolice, o które "
+        "już pytano, działają normalnie."
+    ),
+    tiles.Refusal.BUSY: (
+        "Pobieram teraz dane kilku innych nowych okolic naraz, a tej jeszcze nie znam (albo znam tylko jej część) — "
+        "wyniki i mapa mogą być puste lub niepełne. Spróbuj za minutę."
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -36,6 +49,12 @@ class Query:
 def search(conn: Connection, get_json: GetJson, query: Query, now: datetime) -> Answer:
     miejscowosc, promien_km = query.miejscowosc, query.promien_km
     wanted = list(dict.fromkeys(query.grzyby))  # in the order asked, each once
+    # The day and month in Poland's time: a question at 00:30 on the 1st is next month's.
+    today = now.astimezone(POLAND).date()
+    # The day is in the key: the season and the weather's days change at midnight.
+    cache_key = json.dumps([" ".join(miejscowosc.split()).lower(), wanted, promien_km, query.ile_miejsc, today.isoformat()])
+    if (cached := cache.get(conn, cache_key, now)) is not None:
+        return cached
     try:
         place = geocoding.geocode(conn, get_json, miejscowosc)
     except (OSError, ValueError, KeyError):
@@ -47,10 +66,8 @@ def search(conn: Connection, get_json: GetJson, query: Query, now: datetime) -> 
     radius_m = promien_km * 1000
     around = tiles_around(place.lat, place.lon, radius_m)
     # A first question about an area brings its forest data in: a few seconds, once.
-    missing = tiles.ensure(conn, get_json, around, now)
+    ensured = tiles.ensure(conn, get_json, around, now)
     candidates = store.wydzielenia_within(conn, place.lat, place.lon, radius_m)
-    # The day and month in Poland's time: a question at 00:30 on the 1st is next month's.
-    today = now.astimezone(POLAND).date()
     month = Miesiac(today.month)
     weather_ok = weather.ensure(conn, get_json, around, now)
     days = weather_store.days(conn, around, today - timedelta(days=15), today)
@@ -70,6 +87,9 @@ def search(conn: Connection, get_json: GetJson, query: Query, now: datetime) -> 
             + "; ".join(f"{grzyby.PROFILE[g].nazwa} — od: {scoring.next_season(g, month).nazwa}" for g in wanted)
             + "."
         )
+    elif ensured.refused is not None:
+        # The area is not known yet, so no claim about its forests — the refusal says why.
+        uwagi.append(REFUSED[ensured.refused])
     elif not candidates:
         uwagi.append(
             f"W promieniu {promien_km} km nie ma lasów państwowych, do których wolno wejść — znam tylko Lasy Państwowe "
@@ -77,21 +97,23 @@ def search(conn: Connection, get_json: GetJson, query: Query, now: datetime) -> 
         )
     elif not picked:
         uwagi.append(f"W okolicy nie ma lasów, w których rośnie: {_names(wanted)}.")
-    if missing:
+    if ensured.failed:
         uwagi.append(
             "Części okolicy nie udało się teraz pobrać z Banku Danych o Lasach — wyniki i mapa mogą być niepełne; spróbuj za chwilę."
         )
     if mapa.pominiete:
         uwagi.append(f"Mapa pokazuje {len(mapa.drzewostany.wiek)} najlepszych drzewostanów; {mapa.pominiete} słabszych się nie zmieściło.")
-    if not weather_ok or not any(warunki.values()):
+    weather_missing = not weather_ok or not any(warunki.values())
+    if weather_missing:
         uwagi.append("Nie udało się teraz pobrać pogody (Open-Meteo) — ocena bez niej; spróbuj za chwilę.")
-    if zakazy_at is None or now - zakazy_at >= zakazy.FRESH_FOR:
+    zakazy_stale = zakazy_at is None or now - zakazy_at >= zakazy.FRESH_FOR
+    if zakazy_stale:
         uwagi.append("Nie udało się sprawdzić aktualnych zakazów wstępu do lasu — przed wyjściem zajrzyj na bdl.lasy.gov.pl.")
 
     # One mushroom: its own reasons; several: the average and how it is made up.
     together = wanted[0] if len(wanted) == 1 else None
     data_year = max((s.wydzielenie.data_year for s in [*picked, *(s for ss in per_grzyb.values() for s in ss)]), default=None)
-    return Answer(
+    answer = Answer(
         szukano_wokol=place.name,
         grzyby=[grzyby.PROFILE[g].nazwa for g in wanted],
         promien_km=promien_km,
@@ -101,6 +123,10 @@ def search(conn: Connection, get_json: GetJson, query: Query, now: datetime) -> 
         zrodla=attribution(data_year, store.oldest_fetch(conn, around), zakazy_at),
         mapa=mapa,
     )
+    # Only a complete answer is kept: a note about a service that did not answer must not outlive it.
+    if not (ensured.refused or ensured.failed or weather_missing or zakazy_stale):
+        cache.put(conn, cache_key, answer, now)
+    return answer
 
 
 def _spot(s: scoring.Score, g: Grzyb | None) -> Miejsce:

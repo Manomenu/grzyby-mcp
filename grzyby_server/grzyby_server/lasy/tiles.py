@@ -7,9 +7,12 @@ few seconds while its tiles come in, in parallel; every later one reads the data
 """
 
 import logging
+import threading
 from collections.abc import Iterable, Sequence
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from enum import StrEnum
 from itertools import batched
 
 from psycopg import Connection
@@ -28,12 +31,47 @@ WORKERS = 8
 TILE_LOCK = 0x7469_6C65  # "tile"
 GDOS_KINDS = {"GDOS:ParkiNarodowe": ObszarKind.PARK_NARODOWY, "GDOS:Rezerwaty": ObszarKind.REZERWAT}
 
+# New tiles a day for the whole service, so nobody pulls half of Poland out of BDL. The four
+# benchmark areas (importer.py) are 53 tiles at 15 km and 176 at the tool's largest radius, 30 km.
+# A soft limit: questions about new areas at the same moment do not see each other's tiles.
+DAILY_LIMIT = 300
+DAY = timedelta(hours=24)
+# New areas fetched at once — each holds a window of tiles in memory (load) and a database
+# connection. In-process, which holds while the chart runs one replica.
+AREAS_AT_ONCE = 5
+_areas = threading.BoundedSemaphore(AREAS_AT_ONCE)
 
-def ensure(conn: Connection, get_json: GetJson, wanted: Iterable[Tile], now: datetime) -> list[Tile]:
-    """Fetches those of the tiles (model.tiles_around) not fetched yet. Returns those that could
-    not be."""
+
+class Refusal(StrEnum):
+    """Why a new area was not fetched now."""
+
+    DAILY_LIMIT = "daily_limit"
+    BUSY = "busy"
+
+
+@dataclass(frozen=True)
+class Ensured:
+    failed: list[Tile]  # tried, and a service did not answer
+    refused: Refusal | None = None  # not tried; the area's new tiles are all missing
+
+
+def ensure(conn: Connection, get_json: GetJson, wanted: Iterable[Tile], now: datetime) -> Ensured:
+    """Fetches those of the tiles (model.tiles_around) not fetched yet — all of them, or none
+    when the daily limit or the number of areas fetched at once does not allow it."""
     have = set(store.fetched_tiles(conn))
-    return load(conn, get_json, [tile for tile in wanted if tile not in have], now)
+    new = [tile for tile in wanted if tile not in have]
+    if not new:
+        return Ensured([])
+    if store.tiles_new_since(conn, now - DAY) + len(new) > DAILY_LIMIT:
+        log.warning("daily limit of new tiles reached, %d not fetched", len(new))
+        return Ensured([], Refusal.DAILY_LIMIT)
+    if not _areas.acquire(blocking=False):
+        log.warning("%d new areas already being fetched, %d tiles not fetched", AREAS_AT_ONCE, len(new))
+        return Ensured([], Refusal.BUSY)
+    try:
+        return Ensured(load(conn, get_json, new, now))
+    finally:
+        _areas.release()
 
 
 def load(conn: Connection, get_json: GetJson, tiles: Sequence[Tile], now: datetime) -> list[Tile]:
