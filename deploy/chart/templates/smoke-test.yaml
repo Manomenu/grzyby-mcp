@@ -60,6 +60,11 @@ spec:
               }
               expect 200 /healthz                          # strona (nginx) żyje
               expect 200 /api/health '"ok"'                # serwer odpowiada (i ma bazę — bez niej nie wstaje)
+              # MCP: lista narzędzi przez web, tak jak zawoła chatbot.
+              got="$(curl -s -o /tmp/body -w '%{http_code}' -X POST "$WEB/mcp" \
+                -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' \
+                -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}')"
+              if [ "$got" = 200 ] && grep -q gdzie_na_grzyby /tmp/body; then echo "ok    200 /mcp tools/list"; else echo "FAIL  /mcp tools/list: got $got"; head -c 300 /tmp/body; echo; failed=1; fi
               exit "$failed"
           resources:
             requests: { cpu: 10m, memory: 16Mi }

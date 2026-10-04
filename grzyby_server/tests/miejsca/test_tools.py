@@ -1,0 +1,61 @@
+"""The MCP endpoint as a chatbot sees it: JSON-RPC over HTTP at /mcp."""
+
+from collections.abc import Iterator
+from typing import Any
+
+import pytest
+from fastapi.testclient import TestClient
+
+from grzyby_server.app import mcp_http
+from grzyby_server.miejsca.model import trasa
+from grzyby_server.miejsca.tools import MAP_URI
+
+# Streamable HTTP: the client accepts both, the server answers with JSON (json_response=True).
+HEADERS = {"accept": "application/json, text/event-stream", "content-type": "application/json", "host": "localhost:6210"}
+
+
+@pytest.fixture(scope="session")
+def client() -> Iterator[TestClient]:
+    """The MCP app with its transport running. Session-wide: the SDK's session manager starts
+    once per process (in production that is the FastAPI lifespan). Needs no database."""
+    with TestClient(mcp_http) as client:
+        yield client
+
+
+def rpc(client: TestClient, method: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+    response = client.post("/mcp", headers=HEADERS, json={"jsonrpc": "2.0", "id": 1, "method": method, "params": params or {}})
+    assert response.status_code == 200, response.text
+    body: dict[str, Any] = response.json()
+    assert "error" not in body, body
+    return body["result"]
+
+
+def test_the_tool_is_listed_with_its_map(client: TestClient) -> None:
+    tools = rpc(client, "tools/list")["tools"]
+
+    tool = next(tool for tool in tools if tool["name"] == "gdzie_na_grzyby")
+    assert tool["_meta"]["ui"]["resourceUri"] == MAP_URI
+
+
+def test_the_tool_answers_with_a_spot_and_the_way_there(client: TestClient) -> None:
+    result = rpc(client, "tools/call", {"name": "gdzie_na_grzyby", "arguments": {"miejscowosc": "Suwałki"}})
+
+    spot = result["structuredContent"]["miejsca"][0]
+    assert spot["trasa"] == trasa(spot["lat"], spot["lon"])
+    assert "Bank Danych o Lasach" in result["structuredContent"]["zrodla"]
+
+
+def test_the_map_is_served_as_an_mcp_app(client: TestClient) -> None:
+    contents = rpc(client, "resources/read", {"uri": MAP_URI})["contents"][0]
+
+    assert contents["mimeType"] == "text/html;profile=mcp-app"
+    assert "ontoolresult" in contents["text"]
+
+
+def test_an_unknown_host_is_refused(client: TestClient) -> None:
+    # DNS rebinding guard: only the hosts in settings.mcp_allowed_hosts reach the tools.
+    response = client.post(
+        "/mcp", headers={**HEADERS, "host": "evil.example.com"}, json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"}
+    )
+
+    assert response.status_code in {400, 421}

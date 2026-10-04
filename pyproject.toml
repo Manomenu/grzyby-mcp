@@ -60,6 +60,13 @@ name = "Server layers: features above the plumbing they use"
 type = "layers"
 layers = [
     "grzyby_server.app",
+    "grzyby_server.miejsca",
     "grzyby_server.db",
     "grzyby_server.settings",
 ]
+
+[[tool.importlinter.contracts]]
+name = "Inside miejsca: MCP tools > models"
+type = "layers"
+containers = ["grzyby_server.miejsca"]
+layers = ["tools", "model"]

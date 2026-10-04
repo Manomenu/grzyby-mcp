@@ -21,8 +21,10 @@ sprawdzimy licencji danych.
 - [x] **IMGW** — tylko bieżący pomiar (stacja Suwałki); historia z Open-Meteo albo własne zbieranie.
 - [ ] **Open-Meteo** — wilgotność gleby dla tych samych punktów (darmowe niekomercyjnie);
       porównać z IMGW, czy warto mieć oba.
-- [ ] **MCP Apps** — sprawdzić aktualny stan rozszerzenia (widżet z mapą) w Claude i ChatGPT,
-      zrobić „hello world”: narzędzie zwraca mapkę z jednym punktem.
+- [~] **MCP Apps** — „hello world” jest: `/mcp` (SDK `mcp` 2.3, stateless JSON), narzędzie
+      `gdzie_na_grzyby` z widżetem `ui://grzyby/mapa.html` (MapLibre + OpenFreeMap), działa przez
+      nginx w `just up`. **Zostaje:** zobaczyć mapkę w Claude/ChatGPT — wymaga publicznego `/mcp`
+      (wdrożenie na klaster, punkt 3 niżej, albo chwilowy tunel).
 - [x] **Wybór okolicy pilotażowej** — Suwałki / Wigierski Park Narodowy (park sam w sobie: zbiór zakazany, do potwierdzenia).
 
 ## 1. MVP — jedna okolica, jedno narzędzie

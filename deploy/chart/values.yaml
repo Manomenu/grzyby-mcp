@@ -15,6 +15,9 @@ server:
   # A Secret with DATABASE_URL in the release namespace, created by the platform repo. Without
   # a database the server deliberately does not start.
   databaseSecret: ""
+  # Extra Host headers /mcp answers to (the SDK's DNS-rebinding guard). The ingress host and the
+  # web Service's own name (the smoke test calls through it) are always allowed.
+  mcpHosts: []
   resources:
     requests: { cpu: 50m, memory: 128Mi }
     limits: { memory: 384Mi }

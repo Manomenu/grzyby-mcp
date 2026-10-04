@@ -15,6 +15,11 @@ export default defineConfig({
                 changeOrigin: true,
                 rewrite: (path) => path.replace(/^\/api/, ""),
             },
+            // The MCP endpoint keeps its path, as behind nginx.
+            "/mcp": {
+                target: process.env["API_PROXY_TARGET"] ?? "http://localhost:6210",
+                changeOrigin: false,
+            },
         },
     },
 });
