@@ -11,6 +11,10 @@ Where it comes from — checked 4.10.2026:
   parts); the kurka and the koźlarz czerwony also English Wikipedia (Cantharellus cibarius,
   Leccinum aurantiacum), Frontiers in Microbiology 2023 (Cantharellus mycorrhiza), the Wageningen
   study of chanterelles and soil acidity, and wildfooduk.com (aspen bolete).
+- The temperature optimum of the borowik, 13.2 °C as the mean of the five days before fruiting,
+  is measured: a decade of monitoring near Bielefeld (Brejon Lamartinière & Hoffman 2025,
+  bioRxiv 10.64898/2025.12.12.693895). The other mushrooms' optima are estimates around it:
+  warmer for the summer kurka and koźlarz, cooler for the autumn rydz and maślak.
 - The numbers are not from any source — nobody publishes such factors. They put those
   descriptions on a scale, and the walks of stage 2 (TODO.md) are what corrects them.
 """
@@ -85,6 +89,7 @@ PROFILE: dict[Grzyb, ProfilGrzyba] = {
         # Most abundant in medium-aged stands, rarer in old coniferous forests (Wikipedia).
         wiek=(0.05, 0.7, 1.0, 0.6),
         sezon={M.MAJ: 0.2, M.CZERWIEC: 0.3, M.LIPIEC: 0.6, M.SIERPIEN: 1, M.WRZESIEN: 1, M.PAZDZIERNIK: 0.6, M.LISTOPAD: 0.15},
+        temperatura=13.2,
     ),
     Grzyb.PODGRZYBEK: ProfilGrzyba(
         nazwa="podgrzybek",
@@ -93,6 +98,7 @@ PROFILE: dict[Grzyb, ProfilGrzyba] = {
         siedliska={"bory_swieze": 1.0, "bory_suche": 0.7, "lasy_swieze": 0.6, "wilgotne": 0.5, "bagienne": 0.2, "olsy_legi": 0.05},
         wiek=(0.2, 0.8, 1.0, 0.8),
         sezon={M.LIPIEC: 0.3, M.SIERPIEN: 0.7, M.WRZESIEN: 1, M.PAZDZIERNIK: 1, M.LISTOPAD: 0.5, M.GRUDZIEN: 0.1},
+        temperatura=12,
     ),
     Grzyb.KURKA: ProfilGrzyba(
         nazwa="kurka",
@@ -105,6 +111,7 @@ PROFILE: dict[Grzyb, ProfilGrzyba] = {
         # June to December, picked from late summer to late autumn (Wikipedia); July to October in
         # north-west Russia.
         sezon={M.CZERWIEC: 0.4, M.LIPIEC: 1, M.SIERPIEN: 1, M.WRZESIEN: 0.8, M.PAZDZIERNIK: 0.5, M.LISTOPAD: 0.1},
+        temperatura=15,
     ),
     Grzyb.KOZLARZ: ProfilGrzyba(
         nazwa="koźlarz",
@@ -117,6 +124,7 @@ PROFILE: dict[Grzyb, ProfilGrzyba] = {
         siedliska={"wilgotne": 1.0, "lasy_swieze": 0.8, "bagienne": 0.7, "bory_swieze": 0.6, "olsy_legi": 0.4, "bory_suche": 0.3},
         wiek=(0.6, 1.0, 0.8, 0.5),
         sezon={M.CZERWIEC: 0.4, M.LIPIEC: 0.8, M.SIERPIEN: 1, M.WRZESIEN: 1, M.PAZDZIERNIK: 0.6, M.LISTOPAD: 0.1},
+        temperatura=14,
     ),
     Grzyb.MASLAK: ProfilGrzyba(
         nazwa="maślak",
@@ -135,6 +143,7 @@ PROFILE: dict[Grzyb, ProfilGrzyba] = {
             M.LISTOPAD: 0.5,
             M.GRUDZIEN: 0.05,
         },
+        temperatura=12,
     ),
     Grzyb.RYDZ: ProfilGrzyba(
         nazwa="rydz",
@@ -145,5 +154,6 @@ PROFILE: dict[Grzyb, ProfilGrzyba] = {
         siedliska={"bory_swieze": 0.9, "bory_suche": 0.8, "lasy_swieze": 0.6, "wilgotne": 0.4, "bagienne": 0.1, "olsy_legi": 0},
         wiek=(1.0, 0.8, 0.3, 0.1),
         sezon={M.SIERPIEN: 0.5, M.WRZESIEN: 1, M.PAZDZIERNIK: 1, M.LISTOPAD: 0.3},
+        temperatura=11,
     ),
 }

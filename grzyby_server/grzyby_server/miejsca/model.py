@@ -59,6 +59,7 @@ class ProfilGrzyba(BaseModel):
     siedliska: dict[str, Czynnik] = Field(description="Grupa siedlisk (grzyby.GRUPY_SIEDLISK) → czynnik")
     wiek: tuple[Czynnik, Czynnik, Czynnik, Czynnik] = Field(description="Czynnik dla każdej klasy wieku (grzyby.KLASY_WIEKU)")
     sezon: dict[Miesiac, Czynnik] = Field(description="Miesiąc → czynnik; miesiąca, którego nie ma, grzyb nie rośnie")
+    temperatura: float = Field(description="Najlepsza średnia temperatura z 5 dni przed owocnikowaniem, °C")
 
 
 class Miejsce(BaseModel):
@@ -102,6 +103,15 @@ class Reguly(BaseModel):
     miesiac: Miesiac = Field(description="Miesiąc, dla którego liczono ocenę")
 
 
+class PogodaKwadratu(BaseModel):
+    """The weather over one tile of the grid, for the map's weather mode."""
+
+    opad: float = Field(description="Deszcz 3–14 dni temu, mm")
+    wilgotnosc_gleby: float | None = Field(description="m³/m³ na głębokości 3–9 cm")
+    temperatura: float = Field(description="Średnia z 5 dni, °C")
+    wilgoc: float = Field(description="Jak mokro, od 0 do 1 — ten sam wzór, co w ocenie")
+
+
 class Mapa(BaseModel):
     """What the widget colours: every stand around the place, the areas one may not enter, and
     the rules behind the colours. Not for the chatbot to read — the text has what it needs."""
@@ -112,6 +122,8 @@ class Mapa(BaseModel):
     pominiete: int = Field(description="Ile najsłabszych drzewostanów nie zmieściło się na mapie")
     obszary: list[ObszarNaMapie]
     reguly: Reguly
+    pogoda: dict[str, PogodaKwadratu] = Field(description="Kwadrat siatki (wiersz_kolumna) → pogoda; bez kwadratów bez danych")
+    kwadrat: tuple[float, float] = Field(description="Rozmiar kwadratu siatki w stopniach: szerokość, długość")
 
 
 class Answer(BaseModel):

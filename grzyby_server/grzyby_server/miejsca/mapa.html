@@ -124,6 +124,7 @@
             <button type="button" data-mode="drzewa" aria-pressed="false">Drzewa</button>
             <button type="button" data-mode="wiek" aria-pressed="false">Wiek</button>
             <button type="button" data-mode="siedlisko" aria-pressed="false">Siedlisko</button>
+            <button type="button" data-mode="pogoda" aria-pressed="false">Pogoda</button>
             <span class="spacer"></span>
             <button type="button" id="fullscreen" hidden>Pełny ekran</button>
         </div>
@@ -172,6 +173,14 @@
                 olsy_legi: "#1f4e79",
             };
             const INNE_SIEDLISKO = "#9e9e9e";
+            // How wet the ground is over each tile of the grid (mapa.pogoda[tile].wilgoc, the
+            // score's own formula), dry to soaked.
+            const WILGOC = [
+                { below: 0.2, color: "#efdcb3", label: "sucho" },
+                { below: 0.5, color: "#cfe0b4", label: "lekko wilgotno" },
+                { below: 0.8, color: "#7fb8c9", label: "wilgotno" },
+                { below: 1.01, color: "#2f6f9f", label: "mokro" },
+            ];
 
             // ── the map ───────────────────────────────────────────────────────────────────
             // Canvas, not SVG: two thousand polygons stay smooth. Quarter zoom steps, so the search
@@ -186,6 +195,8 @@
                 attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
             }).addTo(map);
             const layers = L.layerGroup().addTo(map);
+            // The weather mode's tiles, on the map only in that mode.
+            const weatherLayer = L.layerGroup();
             // The numbered spots of the current view, above everything else.
             const spotLayer = L.layerGroup().addTo(map);
             // A legend that folds: on a phone, open, it would cover half the map. It starts open only
@@ -259,11 +270,16 @@
                 if (mode === "wynik") return wynikClass(scoreOf(i)).color;
                 if (mode === "drzewa") return DRZEWA[d.gatunek[i]] ?? INNE_DRZEWO;
                 if (mode === "wiek") return WIEK[wiekClass(rules, d.wiek[i])];
+                if (mode === "pogoda") return "#8a8a8a";
                 return SIEDLISKA[siedliskoGroup(rules, d.siedlisko[i])] ?? INNE_SIEDLISKO;
             }
 
             function paint() {
-                stands.forEach((polygon, i) => polygon.setStyle({ fillColor: colorOf(i) }));
+                // In the weather mode the stands step back, so the tiles' colours show.
+                const fillOpacity = mode === "pogoda" ? 0.15 : 0.8;
+                stands.forEach((polygon, i) => polygon.setStyle({ fillColor: colorOf(i), fillOpacity }));
+                if (mode === "pogoda") weatherLayer.addTo(map);
+                else weatherLayer.remove();
                 renderLegend();
             }
 
@@ -283,6 +299,9 @@
                         rows.push([WIEK[i], `${range}: ${name}`]);
                         from = below;
                     });
+                } else if (mode === "pogoda") {
+                    for (const c of WILGOC) rows.push([c.color, c.label]);
+                    rows.push([null, "deszcz 3–14 dni temu i wilgotność gleby (Open-Meteo)"]);
                 } else {
                     for (const [group, name] of Object.entries(rules.grupy_siedlisk)) rows.push([SIEDLISKA[group] ?? INNE_SIEDLISKO, name]);
                 }
@@ -380,6 +399,21 @@
                         polygon.addTo(layers);
                         stands.push(polygon);
                     });
+                    weatherLayer.clearLayers();
+                    const [tileLat, tileLon] = m.kwadrat;
+                    for (const [tile, w] of Object.entries(m.pogoda)) {
+                        const [row, col] = tile.split("_").map(Number);
+                        const soil = w.wilgotnosc_gleby === null ? "" : `, gleba ${w.wilgotnosc_gleby.toFixed(2)} m³/m³`;
+                        L.rectangle(
+                            [
+                                [row * tileLat, col * tileLon],
+                                [(row + 1) * tileLat, (col + 1) * tileLon],
+                            ],
+                            { color: "#2f6f9f", weight: 0.5, fillColor: WILGOC.find((c) => w.wilgoc < c.below).color, fillOpacity: 0.55 },
+                        )
+                            .bindTooltip(`${w.opad} mm deszczu 3–14 dni temu${soil}, średnio ${w.temperatura} °C`, { sticky: true })
+                            .addTo(weatherLayer);
+                    }
                     // Above the stands, so their grey and their name win.
                     for (const area of m.obszary) {
                         L.polygon(outline(area.ksztalt), { color: "#555", weight: 1.5, dashArray: "5 4", fillColor: "#808080", fillOpacity: 0.45 })

@@ -160,7 +160,7 @@ def wydzielenia_within(conn: Connection, lat: float, lon: float, radius_m: float
         WITH point AS (SELECT ST_SetSRID(ST_MakePoint(%(lon)s, %(lat)s), 4326) AS g)
         SELECT w.adres_lesny, w.gatunek, w.wiek, w.siedlisko, w.powierzchnia_ha, w.data_year,
                ST_Y(s.p), ST_X(s.p), ST_Distance(s.p::geography, point.g::geography),
-               {shape}
+               {shape}, w.tile
         FROM point, wydzielenia w, LATERAL (SELECT ST_PointOnSurface(w.geom) AS p) s
         WHERE w.geom && ST_Expand(point.g, %(dlon)s, %(dlat)s)
           AND ST_DWithin(w.geom::geography, point.g::geography, %(radius)s)

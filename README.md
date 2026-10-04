@@ -9,7 +9,7 @@ zakazy wstępu) i pogoda z Open-Meteo.
 trzy najbardziej obiecujące prawdziwe drzewostany wokół miejscowości — według gatunku, wieku
 i siedliska, z pominięciem parków narodowych, rezerwatów i lasów z zakazem wstępu. Mapa koloruje
 wszystkie drzewostany w promieniu (tryby: wynik, drzewa, wiek, siedlisko). Działa w całej Polsce
-(tylko Lasy Państwowe); pogody jeszcze nie bierze pod uwagę. Plan: [TODO.md](TODO.md),
+(tylko Lasy Państwowe); ocena uwzględnia pogodę z ostatnich dni (Open-Meteo). Plan: [TODO.md](TODO.md),
 propozycja stacka: [docs/dev/propozycja-stacka.md](docs/dev/propozycja-stacka.md).
 
 Skąd dane: drzewostany (BDL), parki i rezerwaty (GDOŚ) trafiają do PostGIS przy pierwszym pytaniu
