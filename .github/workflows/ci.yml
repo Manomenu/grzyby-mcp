@@ -31,7 +31,7 @@ jobs:
     # on the same port, so the tests need no CI-specific settings.
     services:
       postgres:
-        image: docker.io/library/postgres:17.11
+        image: docker.io/postgis/postgis:17-3.6-alpine@sha256:a8ffa9afeea4ad6eada171fa2afdb57cd3eb90f92ce20156aa2cb8411d70e0cd
         env:
           POSTGRES_USER: grzyby
           POSTGRES_PASSWORD: grzyby
@@ -39,7 +39,7 @@ jobs:
         ports:
           - 5443:5432
         options: >-
-          --health-cmd "pg_isready -U grzyby"
+          --health-cmd "pg_isready -h 127.0.0.1 -U grzyby"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
@@ -87,7 +87,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: docker.io/library/postgres:17.11
+        image: docker.io/postgis/postgis:17-3.6-alpine@sha256:a8ffa9afeea4ad6eada171fa2afdb57cd3eb90f92ce20156aa2cb8411d70e0cd
         env:
           POSTGRES_USER: grzyby
           POSTGRES_PASSWORD: grzyby
@@ -95,7 +95,7 @@ jobs:
         ports:
           - 5443:5432
         options: >-
-          --health-cmd "pg_isready -U grzyby"
+          --health-cmd "pg_isready -h 127.0.0.1 -U grzyby"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10

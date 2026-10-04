@@ -67,3 +67,11 @@ def test_a_failing_migration_leaves_nothing_behind(scratch: Connection, tmp_path
 
     with pytest.raises(psycopg.errors.UndefinedObject):
         migrate(scratch, tmp_path)
+
+
+def test_the_database_has_postgis(pool: ConnectionPool) -> None:
+    # Suwałki to Augustów, ~30 km: distances on geography come out in metres.
+    with pool.connection() as conn:
+        row = conn.execute("SELECT ST_Distance('POINT(22.93 54.10)'::geography, 'POINT(22.98 53.84)'::geography)").fetchone()
+    assert row is not None
+    assert 28_000 < row[0] < 31_000

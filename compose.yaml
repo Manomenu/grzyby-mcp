@@ -31,7 +31,7 @@ services:
   # A volume of its own, apart from the one `just db up` uses, so the stack and the
   # development server never share data. No published port: only the server reaches it.
   postgres:
-    image: docker.io/library/postgres:17.11
+    image: docker.io/postgis/postgis:17-3.6-alpine@sha256:a8ffa9afeea4ad6eada171fa2afdb57cd3eb90f92ce20156aa2cb8411d70e0cd
     environment:
       POSTGRES_USER: grzyby
       POSTGRES_PASSWORD: grzyby
@@ -39,7 +39,7 @@ services:
     volumes:
       - postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "grzyby", "-d", "grzyby"]
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "grzyby", "-d", "grzyby"]
       interval: 5s
       timeout: 3s
       retries: 10

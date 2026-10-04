@@ -28,13 +28,13 @@ class Settings(BaseSettings):
     # their own database.
     database_url: str = "postgresql://grzyby:grzyby@localhost:5443/grzyby"
 
-    # Host headers /mcp answers to — the SDK's guard against DNS rebinding. Locally any port on
-    # localhost (bare too: nginx forwards $host without the port); the cluster sets its own names
-    # (chart: MCP_ALLOWED_HOSTS).
     # The key /mcp asks for (mcp_key.py). Unset on a laptop — no check; set on the cluster from
     # the platform repo's Secret.
     mcp_key: str | None = None
 
+    # Host headers /mcp answers to — the SDK's guard against DNS rebinding. Locally any port on
+    # localhost (bare too: nginx forwards $host without the port); the cluster sets its own names
+    # (chart: MCP_ALLOWED_HOSTS).
     mcp_allowed_hosts: list[str] = ["localhost", "localhost:*", "127.0.0.1", "127.0.0.1:*"]
 
 
