@@ -22,6 +22,10 @@ apps = Apps()
 
 @apps.tool(
     resource_uri=MAP_URI,
+    # The same address under the older flat key too. The Python SDK sets only _meta.ui.resourceUri;
+    # the official TypeScript helper (registerAppTool) sets both, and Claude reads this one —
+    # without it Claude never fetches the map and shows the text alone.
+    meta={"ui/resourceUri": MAP_URI},
     name="gdzie_na_grzyby",
     title="Gdzie na grzyby",
     description=(
