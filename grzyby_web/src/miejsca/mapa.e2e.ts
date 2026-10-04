@@ -91,7 +91,7 @@ function hostCsp({ resourceDomains = [], connectDomains = [] }: Csp): string {
 // The stand-in host: answers ui/initialize offering full screen, sends the tool result once the
 // widget is ready, and records the links and display modes it is asked for.
 const hostPage = (result: Answer) => `<!doctype html>
-<html><head><meta charset="utf-8" /></head><body style="margin:0">
+<html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /></head><body style="margin:0">
 <iframe id="widget" src="${WIDGET}" sandbox="allow-scripts allow-same-origin" style="width:100%;height:860px;border:0"></iframe>
 <script>
 const result = ${JSON.stringify({ content: [{ type: "text", text: "…" }], structuredContent: result })};
