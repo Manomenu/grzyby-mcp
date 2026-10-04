@@ -13,8 +13,11 @@ export default defineConfig({
     testMatch: "**/*.e2e.ts",
     // One database for the run, so tests that create data would see each other's in parallel.
     workers: 1,
-    // On CI a flaky failure is retried once; locally a failure shows at once.
+    // On CI a failure is retried once — only to tell a steady failure from a flaky one in the
+    // report. A test that passes on the retry still fails the run: flaky is a bug, in the test or
+    // in the app, never a pass. Locally a failure shows at once.
     retries: process.env["CI"] ? 1 : 0,
+    failOnFlakyTests: Boolean(process.env["CI"]),
     // Results (screenshots, traces, the HTML report) go where every generated file of the repo
     // goes: .artifacts/, outside git and the images.
     outputDir: "../../.artifacts/e2e/test-results",

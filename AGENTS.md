@@ -119,8 +119,10 @@ report and exits non-zero on any failure.
 
 **Browser tests** are separate: `./scripts/.internal/e2e.sh` (`just e2e`) runs Playwright
 against a real server and an empty database of its own, on ports apart from the ones you
-develop on. **CI** runs three jobs: `test` (the gate), `e2e`, and `build`, which builds the
-images only when both are green and publishes them only from `master`.
+develop on. A test that fails in CI is retried once, only so the report tells a steady failure
+from a flaky one; passing on the retry still fails the job (`failOnFlakyTests`) — flaky is a
+bug, in the test or in the app. **CI** runs three jobs: `test` (the gate), `e2e`, and `build`,
+which builds the images only when both are green and publishes them only from `master`.
 
 **After deploy**, Argo runs `deploy/chart/templates/smoke-test.yaml` (a PostSync Job with
 curl): a handful of read-only requests through the real Services, the way traffic arrives
