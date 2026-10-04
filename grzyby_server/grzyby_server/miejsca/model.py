@@ -1,3 +1,4 @@
+from datetime import date
 from enum import IntEnum, StrEnum
 from typing import Annotated
 from urllib.parse import urlencode
@@ -132,6 +133,7 @@ class Answer(BaseModel):
     szukano_wokol: str | None = Field(description="Miejscowość, wokół której szukano — pełna nazwa z mapy, do sprawdzenia")
     grzyby: list[str] = Field(description="Szukane grzyby, po polsku")
     promien_km: int
+    dzien: date | None = Field(default=None, description="Dzień, na który liczono ocenę (pogoda i sezon tego dnia)")
     miejsca: list[Miejsce] = Field(
         description="Najlepsze miejsca na wszystkie szukane grzyby naraz (średnia ich ocen); przy jednym grzybie — na niego"
     )
@@ -146,8 +148,9 @@ class Answer(BaseModel):
 
 def as_text(answer: Answer) -> str:
     """The answer as text (Markdown): what the chatbot reads, and all a client without the map shows."""
+    on_day = f" — {day_text(answer.dzien)}" if answer.dzien else ""
     head = (
-        [f"Lasy w promieniu {answer.promien_km} km od: {answer.szukano_wokol} — na: {', '.join(answer.grzyby)}."]
+        [f"Lasy w promieniu {answer.promien_km} km od: {answer.szukano_wokol} — na: {', '.join(answer.grzyby)}{on_day}."]
         if answer.szukano_wokol
         else []
     )
@@ -163,6 +166,53 @@ def as_text(answer: Answer) -> str:
             lines += [f"### Na: {name}", *(spots(miejsca) or ["(brak miejsc)"])]
     notes = [f"**Uwaga:** {uwaga}" for uwaga in answer.uwagi]
     return "\n\n".join([*head, *lines, *notes, f"_{answer.zrodla}_"])
+
+
+class DzienPrognozy(BaseModel):
+    """How good the area is on one day: the best stands' scores with that day's weather."""
+
+    dzien: date
+    nazwa: str = Field(description="np. „sobota 10.10”")
+    za_ile_dni: int
+    ocena: int = Field(description="Ocena okolicy od 0 do 100 — średnia z najlepszych drzewostanów, na wszystkie grzyby naraz")
+    na_grzyb: dict[Grzyb, int] = Field(description="To samo dla każdego grzyba z osobna")
+    pogoda: str = Field(description="Pogoda okolicy w skrócie: deszcz, wilgoć, temperatura, przymrozki")
+
+
+class Prognoza(BaseModel):
+    """What the „when” tool returns: the area day by day, and the best day."""
+
+    szukano_wokol: str | None
+    grzyby: list[str]
+    promien_km: int
+    dni: list[DzienPrognozy]
+    najlepszy: date | None = Field(description="Najlepszy dzień; brak, gdy żaden nie jest dobry")
+    uwagi: list[str]
+    zrodla: str
+
+
+def forecast_text(p: Prognoza) -> str:
+    """The forecast as text (Markdown) for the chatbot."""
+    if not p.szukano_wokol:
+        return "\n\n".join([*(f"**Uwaga:** {u}" for u in p.uwagi), f"_{p.zrodla}_"])
+    head = f"Kiedy na: {', '.join(p.grzyby)} — lasy w promieniu {p.promien_km} km od: {p.szukano_wokol}."
+    lines = [
+        f"- **{d.nazwa}**: {d.ocena}/100"
+        + (f" ({', '.join(f'{g.value} {v}' for g, v in d.na_grzyb.items())})" if len(d.na_grzyb) > 1 else "")
+        + f" — {d.pogoda}"
+        for d in p.dni
+    ]
+    best = next((d for d in p.dni if d.dzien == p.najlepszy), None)
+    verdict = f"**Najlepiej: {best.nazwa}.**" if best else "**Żaden z tych dni nie wygląda dobrze.**"
+    return "\n\n".join([head, "\n".join(lines), verdict, *(f"**Uwaga:** {u}" for u in p.uwagi), f"_{p.zrodla}_"])
+
+
+DNI_TYGODNIA = ("poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota", "niedziela")
+
+
+def day_text(day: date) -> str:
+    """A day as people say it: „sobota 10.10”."""
+    return f"{DNI_TYGODNIA[day.weekday()]} {day.day}.{day.month:02d}"
 
 
 def route_url(lat: float, lon: float) -> str:

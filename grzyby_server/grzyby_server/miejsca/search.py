@@ -4,23 +4,29 @@ Everything a failure of an outside service can break ends as a note in the answe
 error: the chatbot can still tell the user what happened and what to check themselves.
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from psycopg import Connection
 
 from grzyby_server.fetch import GetJson
 from grzyby_server.lasy import store, tiles, zakazy
-from grzyby_server.lasy.model import tiles_around
+from grzyby_server.lasy.model import Tile, Wydzielenie, tiles_around
 from grzyby_server.miejsca import geocoding, grzyby, map_data, scoring
-from grzyby_server.miejsca.model import Answer, Grzyb, Miejsce, Miesiac, route_url
+from grzyby_server.miejsca.model import Answer, Grzyb, Miejsce, Miesiac, day_text, route_url
 from grzyby_server.pogoda import refresh as weather
 from grzyby_server.pogoda import store as weather_store
 from grzyby_server.pogoda.conditions import conditions
-from grzyby_server.pogoda.model import Warunki
+from grzyby_server.pogoda.model import Dzien, Warunki
 
 POLAND = ZoneInfo("Europe/Warsaw")
+# The days a question may be about, relative to today: three back, five ahead — what the weather
+# stored covers (pogoda/sources.py: 21 days back, 6 ahead).
+MIN_DAY, MAX_DAY = -3, 5
+# From this many days ahead the weather is a forecast worth a word of caution.
+UNSURE_FROM = 3
 
 
 @dataclass(frozen=True)
@@ -30,37 +36,78 @@ class Query:
     miejscowosc: str
     grzyby: list[Grzyb]
     promien_km: int
-    ile_miejsc: int
+    ile_miejsc: int = 3
+    za_ile_dni: int = 0  # the day to score: 0 today, 1 tomorrow, -1 yesterday
 
 
-def search(conn: Connection, get_json: GetJson, query: Query, now: datetime) -> Answer:
-    miejscowosc, promien_km = query.miejscowosc, query.promien_km
-    wanted = list(dict.fromkeys(query.grzyby))  # in the order asked, each once
+@dataclass(frozen=True)
+class Area:
+    """A place and everything about it the day does not change: its stands and the weather days
+    around it — what both tools (search, best_day) work from."""
+
+    place: geocoding.Place
+    radius_m: float
+    around: list[Tile]
+    candidates: list[Wydzielenie]
+    missing: list[Tile]  # tiles whose forest data could not be fetched
+    weather_days: dict[Tile, list[Dzien]]
+    weather_ok: bool
+    zakazy_at: datetime | None
+    today: date  # in Poland
+
+
+def prepare(conn: Connection, get_json: GetJson, miejscowosc: str, promien_km: int, now: datetime) -> Area | str:
+    """The area around `miejscowosc`, or a note for the user when the place cannot be found."""
     try:
         place = geocoding.geocode(conn, get_json, miejscowosc)
     except (OSError, ValueError, KeyError):
-        return _no_spots(wanted, promien_km, f"Nie udało się teraz sprawdzić, gdzie leży „{miejscowosc}” — spróbuj za chwilę.")
+        return f"Nie udało się teraz sprawdzić, gdzie leży „{miejscowosc}” — spróbuj za chwilę."
     if place is None:
-        return _no_spots(wanted, promien_km, f"Nie znalazłem w Polsce miejscowości „{miejscowosc}”.")
-
+        return f"Nie znalazłem w Polsce miejscowości „{miejscowosc}”."
     zakazy_at = zakazy.refresh(conn, get_json, now)
     radius_m = promien_km * 1000
     around = tiles_around(place.lat, place.lon, radius_m)
     # A first question about an area brings its forest data in: a few seconds, once.
     missing = tiles.ensure(conn, get_json, around, now)
-    candidates = store.wydzielenia_within(conn, place.lat, place.lon, radius_m)
-    # The day and month in Poland's time: a question at 00:30 on the 1st is next month's.
+    # Poland's calendar: a question at 00:30 on the 1st is about the 1st.
     today = now.astimezone(POLAND).date()
-    month = Miesiac(today.month)
     weather_ok = weather.ensure(conn, get_json, around, now)
-    days = weather_store.days(conn, around, today - timedelta(days=15), today)
-    warunki: dict[str, Warunki | None] = {tile.id: conditions(days.get(tile, []), today) for tile in around}
-    scores = [scoring.score(w, wanted, month, radius_m, warunki.get(w.tile)) for w in candidates]
+    return Area(
+        place=place,
+        radius_m=radius_m,
+        around=around,
+        candidates=store.wydzielenia_within(conn, place.lat, place.lon, radius_m),
+        missing=missing,
+        # Enough days for the windows of pogoda/conditions.py on any day the tools may ask about.
+        weather_days=weather_store.days(conn, around, today - timedelta(days=15 - MIN_DAY), today + timedelta(days=MAX_DAY)),
+        weather_ok=weather_ok,
+        zakazy_at=zakazy_at,
+        today=today,
+    )
+
+
+def score_day(area: Area, wanted: Sequence[Grzyb], day: date) -> tuple[list[scoring.Score], dict[str, Warunki | None]]:
+    """Every stand of the area scored for `day` — the weather of that day, the month of that day."""
+    warunki: dict[str, Warunki | None] = {tile.id: conditions(area.weather_days.get(tile, []), day) for tile in area.around}
+    month = Miesiac(day.month)
+    return [scoring.score(w, wanted, month, area.radius_m, warunki.get(w.tile)) for w in area.candidates], warunki
+
+
+def search(conn: Connection, get_json: GetJson, query: Query, now: datetime) -> Answer:
+    promien_km = query.promien_km
+    wanted = list(dict.fromkeys(query.grzyby))  # in the order asked, each once
+    area = prepare(conn, get_json, query.miejscowosc, promien_km, now)
+    if isinstance(area, str):
+        return _no_spots(wanted, promien_km, area)
+    place, candidates = area.place, area.candidates
+    day = area.today + timedelta(days=query.za_ile_dni)
+    month = Miesiac(day.month)
+    scores, warunki = score_day(area, wanted, day)
     # Spots for all the mushrooms at once (their average) and, asked about several, for each on
     # its own — usually different places, as they should be.
     picked = scoring.pick(scores, query.ile_miejsc)
     per_grzyb = {g: scoring.pick(scores, query.ile_miejsc, by=lambda s, g=g: s.per_grzyb[g]) for g in wanted} if len(wanted) > 1 else {}
-    obszary = store.obszary_within(conn, place.lat, place.lon, radius_m)
+    obszary = store.obszary_within(conn, place.lat, place.lon, area.radius_m)
     mapa = map_data.build_map(scores, obszary, (place.lat, place.lon), map_data.rules(wanted, month), warunki)
 
     uwagi: list[str] = []
@@ -77,15 +124,17 @@ def search(conn: Connection, get_json: GetJson, query: Query, now: datetime) -> 
         )
     elif not picked:
         uwagi.append(f"W okolicy nie ma lasów, w których rośnie: {_names(wanted)}.")
-    if missing:
+    if area.missing:
         uwagi.append(
             "Części okolicy nie udało się teraz pobrać z Banku Danych o Lasach — wyniki i mapa mogą być niepełne; spróbuj za chwilę."
         )
     if mapa.pominiete:
         uwagi.append(f"Mapa pokazuje {len(mapa.drzewostany.wiek)} najlepszych drzewostanów; {mapa.pominiete} słabszych się nie zmieściło.")
-    if not weather_ok or not any(warunki.values()):
+    if not area.weather_ok or not any(warunki.values()):
         uwagi.append("Nie udało się teraz pobrać pogody (Open-Meteo) — ocena bez niej; spróbuj za chwilę.")
-    if zakazy_at is None or now - zakazy_at >= zakazy.FRESH_FOR:
+    elif query.za_ile_dni >= UNSURE_FROM:
+        uwagi.append(f"Ocena na {day_text(day)} opiera się na prognozie pogody — im dalej, tym mniej pewnej.")
+    if area.zakazy_at is None or now - area.zakazy_at >= zakazy.FRESH_FOR:
         uwagi.append("Nie udało się sprawdzić aktualnych zakazów wstępu do lasu — przed wyjściem zajrzyj na bdl.lasy.gov.pl.")
 
     # One mushroom: its own reasons; several: the average and how it is made up.
@@ -95,10 +144,11 @@ def search(conn: Connection, get_json: GetJson, query: Query, now: datetime) -> 
         szukano_wokol=place.name,
         grzyby=[grzyby.PROFILE[g].nazwa for g in wanted],
         promien_km=promien_km,
+        dzien=day,
         miejsca=[_spot(s, together) for s in picked],
         miejsca_na_grzyb={g: [_spot(s, g) for s in spots] for g, spots in per_grzyb.items()},
         uwagi=uwagi,
-        zrodla=attribution(data_year, store.oldest_fetch(conn, around), zakazy_at),
+        zrodla=attribution(data_year, store.oldest_fetch(conn, area.around), area.zakazy_at),
         mapa=mapa,
     )
 
@@ -139,7 +189,9 @@ def attribution(data_year: int | None, wydzielenia_at: datetime | None, zakazy_a
 
 def _no_spots(wanted: list[Grzyb], promien_km: int, uwaga: str) -> Answer:
     names = [grzyby.PROFILE[g].nazwa for g in wanted]
-    return Answer(szukano_wokol=None, grzyby=names, promien_km=promien_km, miejsca=[], uwagi=[uwaga], zrodla=attribution(None, None, None))
+    return Answer(
+        szukano_wokol=None, grzyby=names, promien_km=promien_km, dzien=None, miejsca=[], uwagi=[uwaga], zrodla=attribution(None, None, None)
+    )
 
 
 def _names(wanted: list[Grzyb]) -> str:

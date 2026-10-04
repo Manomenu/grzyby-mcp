@@ -84,7 +84,10 @@ def score(w: Wydzielenie, wanted: Sequence[Grzyb], month: Miesiac, radius_m: flo
     )
 
 
-def pick(scores: list[Score], count: int = 3, by: Callable[[Score], float] = lambda s: s.points) -> list[Score]:
+type ScoreKey = Callable[[Score], float]
+
+
+def pick(scores: list[Score], count: int = 3, by: ScoreKey = lambda s: s.points) -> list[Score]:
     """The best `count` by `by` (the average, or one mushroom's score) above zero, each at least
     MIN_SPACING_M from those before it."""
     picked: list[Score] = []

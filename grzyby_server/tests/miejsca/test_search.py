@@ -1,10 +1,10 @@
 from collections.abc import Mapping
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from psycopg import Connection
 
 from grzyby_server.miejsca import geocoding
-from grzyby_server.miejsca.model import Grzyb, route_url
+from grzyby_server.miejsca.model import Grzyb, as_text, route_url
 from grzyby_server.miejsca.search import Query, search
 from tests.fake_web import Answer, FakeWeb, area, forest_services, stand
 
@@ -145,3 +145,18 @@ def test_the_weather_is_in_the_reasons_and_the_attribution(conn: Connection) -> 
 
     assert "pogoda: 20 mm deszczu 3–14 dni temu" in answer.miejsca[0].dlaczego
     assert "Open-Meteo" in answer.zrodla
+
+
+def test_another_day_is_scored_with_that_days_weather(conn: Connection) -> None:
+    # The soaking of 27.09 is 7 days before today — and 9 days before the day after tomorrow.
+    answer = search(conn, web(stands=[stand("pine", LON, LAT)]), Query("Suwałki", [Grzyb.BOROWIK], 15, 3, za_ile_dni=2), NOW)
+
+    assert answer.dzien == date(2026, 10, 6)
+    assert "wtorek 6.10" in as_text(answer)
+    assert not any("prognozie" in uwaga for uwaga in answer.uwagi)
+
+
+def test_days_further_ahead_say_the_weather_is_a_forecast(conn: Connection) -> None:
+    answer = search(conn, web(stands=[stand("pine", LON, LAT)]), Query("Suwałki", [Grzyb.BOROWIK], 15, 3, za_ile_dni=4), NOW)
+
+    assert any("prognozie pogody" in uwaga for uwaga in answer.uwagi)

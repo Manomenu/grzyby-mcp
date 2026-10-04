@@ -47,12 +47,12 @@ sprawdzimy licencji danych.
       monitoringu borowika pod Bielefeld (Brejon Lamartinière & Hoffman 2025) — okno 5 dni,
       optimum 13,2 °C, reguła gorąco i sucho; reszta liczb szacunkowa, do korekty w etapie 2.
       Tryb mapy „Pogoda”: kwadraty w kolorach wilgoci.
-- [ ] **Data w obecnym narzędziu** — opcjonalny parametr: dzień, na który liczyć ocenę, od
-      3 dni wstecz do 5 dni naprzód (domyślnie dziś). Open-Meteo daje w jednym zapytaniu
-      historię (`past_days`) i prognozę (`forecast_days`), więc wstecz też się da.
-- [ ] **Osobne narzędzie „kiedy jechać?”** — dla miejscowości (i ewentualnie grzyba) ocena na
-      dziś i 5 kolejnych dni, z najlepszym dniem i krótkim „dlaczego” (np. „w środę padało,
-      w sobotę wysyp”); ten sam wzór pogody co wyżej.
+- [x] **Data w `gdzie_na_grzyby`** (4.10.2026) — parametr `za_ile_dni`: od 3 dni wstecz do 5
+      naprzód, domyślnie dziś; pogoda i sezon tego dnia, od 3. dnia uwaga, że to prognoza.
+- [x] **Narzędzie `kiedy_na_grzyby`** (4.10.2026) — dziś i 5 dni naprzód: ocena okolicy na dzień
+      (średnia z 10 najlepszych drzewostanów, na wszystkie grzyby i na każdy), pogoda w skrócie,
+      najlepszy dzień (od 40/100). Bez mapy; okolica liczona raz, zmienia się tylko pogoda
+      (`miejsca/best_day.py`). Chatbot potem woła `gdzie_na_grzyby` z `za_ile_dni`.
 - [~] **Wynik punktowy** dla wydzielenia (`miejsca/scoring.py`): jest część stała — gatunek ×
       siedlisko × wiek × wielkość × odległość, każdy składnik z „dlaczego”. **Zostaje:** opady
       z ostatnich 2–3 tygodni, temperatura, wilgotność gleby, pora roku.

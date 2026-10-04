@@ -2,6 +2,7 @@
     "szukano_wokol": "Suwałki, województwo podlaskie, Polska",
     "grzyby": ["borowik", "koźlarz", "maślak"],
     "promien_km": 10,
+    "dzien": "2026-09-12",
     "miejsca": [
         {
             "nazwa": "Las sosnowy, 70 lat, 40 ha",
