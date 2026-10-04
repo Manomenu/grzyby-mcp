@@ -1,8 +1,13 @@
 from collections.abc import Mapping
 from typing import Any
 
+import pytest
+
 from grzyby_server.lasy import sources
+from grzyby_server.lasy.model import tiles_around
 from tests.fake_web import FakeWeb, ban, stand
+
+BOX = (22.95, 54.1, 23.1, 54.2)
 
 
 def pages(features: list[dict[str, Any]], offset_param: str, size_param: str) -> Any:
@@ -13,14 +18,41 @@ def pages(features: list[dict[str, Any]], offset_param: str, size_param: str) ->
     return answer
 
 
-def test_stands_are_fetched_page_by_page_until_a_short_page() -> None:
-    features = [stand(f"a-{i}", 23.0, 54.0) for i in range(sources.PAGE + 3)]
-    web = FakeWeb({sources.BDL_STANDS: pages(features, "offset", "limit")})
+# The benchmark areas (importer.BENCHMARK), each in its own RDLP: 15 km around them asks one
+# collection each.
+@pytest.mark.parametrize(
+    ("lat", "lon", "rdlp"),
+    [(54.10, 22.93, "Bialystok"), (51.14, 23.47, "Lublin"), (54.35, 18.65, "Gdansk")],
+    ids=["Suwałki", "Chełm", "Gdańsk"],
+)
+def test_a_tile_asks_the_collection_of_its_rdlp(lat: float, lon: float, rdlp: str) -> None:
+    assert {r for tile in tiles_around(lat, lon, 15_000) for r in sources.rdlps_for(tile.bbox)} == {rdlp}
 
-    fetched = list(sources.fetch_wydzielenia(web))
+
+def test_a_tile_on_a_border_asks_both_collections() -> None:
+    # Between RDLP Białystok and RDLP Olsztyn, around 21.7° E.
+    assert set(sources.rdlps_for((21.6, 53.8, 21.75, 53.9))) == {"Bialystok", "Olsztyn"}
+
+
+def test_stands_of_a_box_are_fetched_page_by_page_until_a_short_page() -> None:
+    features = [stand(f"a-{i}", 23.0, 54.15) for i in range(sources.PAGE + 3)]
+    web = FakeWeb({sources.BDL_STANDS.format(rdlp="Bialystok"): pages(features, "offset", "limit")})
+
+    fetched = sources.fetch_wydzielenia(web, "Bialystok", BOX)
 
     assert len(fetched) == sources.PAGE + 3
     assert [params["offset"] for _, params in web.calls] == [0, sources.PAGE]
+    assert web.calls[0][1]["bbox"] == "22.95,54.1,23.1,54.2"
+
+
+def test_protected_areas_are_asked_for_with_the_box_latitude_first() -> None:
+    web = FakeWeb({sources.GDOS_WFS: {"features": []}})
+
+    sources.fetch_obszary_chronione(web, "GDOS:Rezerwaty", BOX)
+
+    params = web.calls[0][1]
+    assert params["typeNames"] == "GDOS:Rezerwaty"
+    assert params["bbox"] == "54.1,22.95,54.2,23.1,urn:ogc:def:crs:EPSG::4326"
 
 
 def test_entry_bans_are_fetched_page_by_page_in_wgs84() -> None:
@@ -33,13 +65,3 @@ def test_entry_bans_are_fetched_page_by_page_in_wgs84() -> None:
     assert len(fetched) == sources.PAGE
     assert web.asked(sources.BDL_BANS) == 2
     assert web.calls[0][1]["outSR"] == 4326
-
-
-def test_protected_areas_are_asked_for_with_the_box_latitude_first() -> None:
-    web = FakeWeb({sources.GDOS_WFS: {"features": []}})
-
-    sources.fetch_obszary_chronione(web, "GDOS:Rezerwaty", (22.85, 53.95, 23.35, 54.20))
-
-    params = web.calls[0][1]
-    assert params["typeNames"] == "GDOS:Rezerwaty"
-    assert params["bbox"] == "53.95,22.85,54.2,23.35,urn:ogc:def:crs:EPSG::4326"

@@ -1,10 +1,11 @@
 {{- /*
-Import danych o lasach: drzewostany z BDL, parki narodowe i rezerwaty z GDOŚ
-(grzyby_server/lasy/importer.py). Drzewostany zmieniają się raz w roku, parki prawie nigdy —
-stąd raz w miesiącu. Zakazy wstępu nie idą tędy: serwer pobiera je sam przy zapytaniu.
+Odświeżenie danych o lasach (grzyby_server/lasy/importer.py): drzewostany z BDL, parki
+narodowe i rezerwaty z GDOŚ — tylko dla kwadratów, o które ktoś już pytał. Nowe okolice
+dociąga sam serwer przy pierwszym pytaniu (lasy/tiles.py), więc świeża baza niczego nie
+wymaga. Drzewostany zmieniają się raz w roku, parki prawie nigdy — stąd raz w miesiącu.
+Zakazy wstępu nie idą tędy: serwer pobiera je sam przy zapytaniu.
 
-Ten sam obraz co serwer, inna komenda. Pierwsze wypełnienie świeżej bazy, bez czekania
-na harmonogram:
+Ten sam obraz co serwer, inna komenda. Odświeżenie od razu, bez czekania na harmonogram:
   kubectl -n <namespace> create job --from=cronjob/<release>-importer <release>-importer-now
 */ -}}
 apiVersion: batch/v1
@@ -23,9 +24,11 @@ spec:
   failedJobsHistoryLimit: 2
   jobTemplate:
     spec:
-      # Usługi BDL i GDOŚ bywają chwilowo niedostępne; nieudany import zostawia stare dane.
-      backoffLimit: 2
-      activeDeadlineSeconds: 1800
+      # Czas rośnie z liczbą odpytanych okolic (kilka sekund na kwadrat). Kwadrat, którego usługa
+      # chwilowo nie oddała, zostaje ze starymi danymi, reszta idzie dalej — więc bez ponawiania
+      # całości; kolejna próba za miesiąc albo ręcznie.
+      backoffLimit: 0
+      activeDeadlineSeconds: 21600
       template:
         metadata:
           labels:

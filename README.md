@@ -8,12 +8,13 @@ zakazy wstępu) i pogoda z Open-Meteo.
 **Stan:** etap 1 w toku. Narzędzie `gdzie_na_grzyby` pod `/mcp` (z mapką, MCP Apps) wskazuje
 trzy najbardziej obiecujące prawdziwe drzewostany wokół miejscowości — według gatunku, wieku
 i siedliska, z pominięciem parków narodowych, rezerwatów i lasów z zakazem wstępu. Mapa koloruje
-wszystkie drzewostany w promieniu (tryby: wynik, drzewa, wiek, siedlisko). Zna tylko okolice
-Suwałk i Wigier; pogody jeszcze nie bierze pod uwagę. Plan: [TODO.md](TODO.md),
+wszystkie drzewostany w promieniu (tryby: wynik, drzewa, wiek, siedlisko). Działa w całej Polsce
+(tylko Lasy Państwowe); pogody jeszcze nie bierze pod uwagę. Plan: [TODO.md](TODO.md),
 propozycja stacka: [docs/dev/propozycja-stacka.md](docs/dev/propozycja-stacka.md).
 
-Skąd dane: drzewostany (BDL), parki i rezerwaty (GDOŚ) kopiuje do PostGIS import raz
-w miesiącu (`grzyby_server/lasy/importer.py`, CronJob w charcie); zakazy wstępu (BDL) serwer
+Skąd dane: drzewostany (BDL), parki i rezerwaty (GDOŚ) trafiają do PostGIS przy pierwszym pytaniu
+o daną okolicę (kwadratami ok. 11 × 10 km, `grzyby_server/lasy/tiles.py`), a CronJob raz
+w miesiącu odświeża te, o które już pytano; zakazy wstępu (BDL) serwer
 pobiera sam przy zapytaniu i trzyma 4 godziny; nazwę miejscowości zamienia na współrzędne
 Nominatim (OpenStreetMap), z zapamiętaniem w bazie.
 
@@ -41,7 +42,7 @@ just                 # wszystkie komendy, w grupach
 just db up           # lokalny PostgreSQL na :5443
 just server          # API na :6210 (Swagger pod /docs)
 just web             # aplikacja na :3210, /api przekazuje do serwera
-just import          # dane o lasach do lokalnej bazy (BDL, GDOŚ; ~15 s) — bez tego narzędzie nic nie znajdzie
+just import          # dane o lasach wokół Suwałk, Chełma i Gdańska do lokalnej bazy (reszta dociąga się przy pytaniu)
 just up              # cały stack w kontenerach na :8091 — bez klastra
 just import-up       # to samo dla bazy stacku w kontenerach
 just check           # bramka jakości, dokładnie to, co odpala CI

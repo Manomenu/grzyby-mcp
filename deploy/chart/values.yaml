@@ -25,8 +25,8 @@ server:
     requests: { cpu: 50m, memory: 128Mi }
     limits: { memory: 384Mi }
 
-# Monthly import of forest data (templates/importer.yaml). Peaks at ~80 MB for ~15 s on the
-# pilot area.
+# Monthly refresh of the forest data asked about so far (templates/importer.yaml): a few seconds
+# per tile, a tile at a time in the database, so memory stays small.
 importer:
   schedule: "0 4 1 * *" # 04:00 on the 1st of every month, Polish time
   resources:

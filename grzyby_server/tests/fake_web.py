@@ -3,6 +3,8 @@
 from collections.abc import Callable, Mapping
 from typing import Any
 
+from grzyby_server.lasy import sources
+
 type Answer = Any | Callable[[Mapping[str, str | int]], Any]
 
 
@@ -46,8 +48,8 @@ def stand(adr_for: str, lon: float, lat: float, **properties: Any) -> dict[str, 
 
 
 def area(nazwa: str, lon: float, lat: float, size: float = 0.01) -> dict[str, Any]:
-    """A GDOŚ park or reserve."""
-    return {"type": "Feature", "properties": {"nazwa": nazwa}, "geometry": square(lon, lat, size)}
+    """A GDOŚ park or reserve; its gid made from the name, so the same area keeps its id."""
+    return {"type": "Feature", "properties": {"gid": sum(map(ord, nazwa)), "nazwa": nazwa}, "geometry": square(lon, lat, size)}
 
 
 def ban(objectid: int, lon: float, lat: float) -> dict[str, Any]:
@@ -57,6 +59,20 @@ def ban(objectid: int, lon: float, lat: float) -> dict[str, Any]:
         "properties": {"objectid": objectid, "nazwa_nadl": "Suwałki                       ", "data_koncowa": "2026-12-31 00:00:00"},
         "geometry": square(lon, lat, 0.01),
     }
+
+
+def forest_services(stands: Answer = None, protected: Answer = None, bans: Answer = None) -> dict[str, Answer]:
+    """BDL and GDOŚ as the tiles see them (FakeWeb answers): every RDLP collection gives `stands`
+    (a list) whatever the box — or raises, when given an exception — GDOŚ the `protected` areas
+    for both layers, the ban service `bans`. Unset: nothing anywhere."""
+
+    def wrap(answer: Answer) -> Answer:
+        return answer if isinstance(answer, BaseException) or callable(answer) else {"features": answer or []}
+
+    answers: dict[str, Answer] = {sources.BDL_STANDS.format(rdlp=rdlp): wrap(stands) for rdlp in sources.RDLP_BBOX}
+    answers[sources.GDOS_WFS] = wrap(protected)
+    answers[sources.BDL_BANS] = wrap(bans)
+    return answers
 
 
 def decode_polyline(encoded: str) -> list[tuple[float, float]]:

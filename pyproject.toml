@@ -73,7 +73,7 @@ containers = ["grzyby_server.miejsca"]
 layers = ["tools", "search", "map_data", "scoring | geocoding", "model"]
 
 [[tool.importlinter.contracts]]
-name = "Inside lasy: import, entry bans > SQL > sources, models"
+name = "Inside lasy: the monthly job > tiles on demand, entry bans > SQL > sources, models"
 type = "layers"
 containers = ["grzyby_server.lasy"]
-layers = ["importer | zakazy", "store", "sources | model"]
+layers = ["importer", "tiles | zakazy", "store", "sources | model"]

@@ -10,7 +10,7 @@ from grzyby_server.miejsca.model import Drzewostany, Mapa, ObszarNaMapie, Reguly
 
 # Characters of outlines and attributes the stands may take. A tool result above ~150 000
 # characters never reaches the widget in claude.ai (docs/mcp-apps.md); the rest of the answer is
-# a few thousand. A 15 km circle near Suwałki is ~1800 stands and ~110 000; a bigger one leaves
+# a few thousand. A 15 km circle near Suwałki (pine country) is ~1800 stands and ~110 000; a bigger one leaves
 # out its weakest stands, which the map would show faintest anyway.
 BUDGET = 120_000
 # A stand's attributes as JSON, besides its outline: `87,"SO","BMŚW",67,` and the like.

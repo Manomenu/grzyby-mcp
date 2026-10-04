@@ -14,7 +14,7 @@ def found(conn: Connection, radius_m: float = 5000) -> list[str]:
 
 
 def test_stands_within_the_radius_are_found_with_a_point_inside_and_its_distance(conn: Connection) -> None:
-    store.replace_wydzielenia(conn, [stand("near", LON, LAT + 0.02), stand("far", LON, LAT + 0.2)])
+    store.upsert_wydzielenia(conn, [stand("near", LON, LAT + 0.02), stand("far", LON, LAT + 0.2)])
 
     [near] = store.wydzielenia_within(conn, LAT, LON, 5000)
 
@@ -25,7 +25,7 @@ def test_stands_within_the_radius_are_found_with_a_point_inside_and_its_distance
 
 
 def test_stands_one_may_not_enter_are_left_out(conn: Connection) -> None:
-    store.replace_wydzielenia(
+    store.upsert_wydzielenia(
         conn,
         [
             stand("open", LON, LAT),
@@ -35,8 +35,8 @@ def test_stands_one_may_not_enter_are_left_out(conn: Connection) -> None:
             stand("banned", LON + 0.06, LAT),
         ],
     )
-    store.replace_obszary(conn, ObszarKind.PARK_NARODOWY, [area("Park", LON + 0.019, LAT - 0.001)])
-    store.replace_obszary(conn, ObszarKind.REZERWAT, [area("Rezerwat", LON + 0.039, LAT - 0.001)])
+    store.upsert_obszar(conn, ObszarKind.PARK_NARODOWY, area("Park", LON + 0.019, LAT - 0.001))
+    store.upsert_obszar(conn, ObszarKind.REZERWAT, area("Rezerwat", LON + 0.039, LAT - 0.001))
     store.replace_zakazy(conn, [ban(1, LON + 0.059, LAT - 0.001)])
 
     assert found(conn) == ["open"]
@@ -49,7 +49,7 @@ def test_entry_bans_keep_the_forest_district_without_padding(conn: Connection) -
 
 
 def test_a_stand_comes_with_its_outline_for_the_map(conn: Connection) -> None:
-    store.replace_wydzielenia(conn, [stand("a", LON, LAT)])
+    store.upsert_wydzielenia(conn, [stand("a", LON, LAT)])
 
     [w] = store.wydzielenia_within(conn, LAT, LON, 1000)
 
@@ -60,8 +60,8 @@ def test_a_stand_comes_with_its_outline_for_the_map(conn: Connection) -> None:
 
 
 def test_areas_one_may_not_enter_near_the_point_are_listed_for_the_map(conn: Connection) -> None:
-    store.replace_obszary(conn, ObszarKind.PARK_NARODOWY, [area("Wigierski Park Narodowy", LON + 0.01, LAT)])
-    store.replace_obszary(conn, ObszarKind.REZERWAT, [area("Daleki rezerwat", LON + 1, LAT)])
+    store.upsert_obszar(conn, ObszarKind.PARK_NARODOWY, area("Wigierski Park Narodowy", LON + 0.01, LAT))
+    store.upsert_obszar(conn, ObszarKind.REZERWAT, area("Daleki rezerwat", LON + 1, LAT))
     store.replace_zakazy(conn, [ban(1, LON - 0.02, LAT)])
 
     obszary = store.obszary_within(conn, LAT, LON, 5000)

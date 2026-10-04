@@ -1,34 +1,31 @@
+from collections.abc import Mapping
 from datetime import UTC, datetime
 
 from psycopg import Connection
 
-from grzyby_server.lasy import sources, store
-from grzyby_server.lasy.model import ObszarKind
 from grzyby_server.miejsca import geocoding
 from grzyby_server.miejsca.model import route_url
 from grzyby_server.miejsca.search import Query, search
-from tests.fake_web import Answer, FakeWeb, area, stand
+from tests.fake_web import Answer, FakeWeb, area, forest_services, stand
 
 NOW = datetime(2026, 10, 4, 10, 0, tzinfo=UTC)
 LAT, LON = 54.10, 22.93
 SUWALKI = [{"lat": str(LAT), "lon": str(LON), "display_name": "Suwałki, województwo podlaskie, Polska"}]
 
 
-def web(nominatim: Answer = SUWALKI, bans: Answer = None) -> FakeWeb:
-    return FakeWeb({geocoding.NOMINATIM: nominatim, sources.BDL_BANS: bans if bans is not None else {"features": []}})
+def web(nominatim: Answer = SUWALKI, stands: Answer = None, protected: Answer = None, bans: Answer = None) -> FakeWeb:
+    """The services a search reaches: Nominatim, and BDL and GDOŚ as the tiles see them."""
+    return FakeWeb({geocoding.NOMINATIM: nominatim, **forest_services(stands=stands, protected=protected, bans=bans)})
 
 
 def test_the_best_stands_around_the_place_come_with_reasons_routes_and_attribution(conn: Connection) -> None:
-    store.replace_wydzielenia(
-        conn,
-        [
-            stand("pine", LON, LAT + 0.02),
-            stand("alder", LON, LAT - 0.02, species_cd="OL", site_type="OL"),
-            stand("young", LON + 0.05, LAT, spec_age=8),
-        ],
-    )
+    stands = [
+        stand("pine", LON, LAT + 0.02),
+        stand("alder", LON, LAT - 0.02, species_cd="OL", site_type="OL"),
+        stand("young", LON + 0.05, LAT, spec_age=8),
+    ]
 
-    answer = search(conn, web(), Query("Suwałki", 15, 3), NOW)
+    answer = search(conn, web(stands=stands), Query("Suwałki", 15, 3), NOW)
 
     assert answer.szukano_wokol == "Suwałki, województwo podlaskie, Polska"
     assert [m.adres_lesny for m in answer.miejsca] == ["pine", "alder"]
@@ -45,9 +42,10 @@ def test_the_best_stands_around_the_place_come_with_reasons_routes_and_attributi
 
 
 def test_the_map_greys_out_what_one_may_not_enter(conn: Connection) -> None:
-    store.replace_obszary(conn, ObszarKind.REZERWAT, [area("Ostoja bobrów Marycha", LON + 0.01, LAT)])
+    def reserves(params: Mapping[str, str | int]) -> dict[str, object]:
+        return {"features": [area("Ostoja bobrów Marycha", LON + 0.01, LAT)] if params["typeNames"] == "GDOS:Rezerwaty" else []}
 
-    answer = search(conn, web(), Query("Suwałki", 15, 3), NOW)
+    answer = search(conn, web(protected=reserves), Query("Suwałki", 15, 3), NOW)
 
     assert answer.mapa is not None
     assert [o.nazwa for o in answer.mapa.obszary] == ["Ostoja bobrów Marycha"]
@@ -57,7 +55,7 @@ def test_a_place_outside_the_known_forests_says_so(conn: Connection) -> None:
     answer = search(conn, web(), Query("Suwałki", 15, 3), NOW)
 
     assert answer.miejsca == []
-    assert "okolice Suwałk i Wigier" in answer.uwagi[0]
+    assert "nie ma lasów państwowych" in answer.uwagi[0]
 
 
 def test_an_unknown_place_says_so(conn: Connection) -> None:
@@ -74,16 +72,32 @@ def test_a_geocoder_that_is_down_is_a_note_not_an_error(conn: Connection) -> Non
 
 
 def test_bans_that_could_not_be_checked_are_a_warning(conn: Connection) -> None:
-    store.replace_wydzielenia(conn, [stand("pine", LON, LAT)])
-
-    answer = search(conn, web(bans=OSError("down")), Query("Suwałki", 15, 3), NOW)
+    answer = search(conn, web(stands=[stand("pine", LON, LAT)], bans=OSError("down")), Query("Suwałki", 15, 3), NOW)
 
     assert [m.adres_lesny for m in answer.miejsca] == ["pine"]
     assert any("zakazów wstępu" in uwaga for uwaga in answer.uwagi)
 
 
 def test_more_spots_can_be_asked_for(conn: Connection) -> None:
-    store.replace_wydzielenia(conn, [stand(f"pine-{i}", LON, LAT + 0.02 * i) for i in range(6)])
+    services = web(stands=[stand(f"pine-{i}", LON, LAT + 0.02 * i) for i in range(6)])
 
-    assert len(search(conn, web(), Query("Suwałki", 15, 3), NOW).miejsca) == 3
-    assert len(search(conn, web(), Query("Suwałki", 15, 5), NOW).miejsca) == 5
+    assert len(search(conn, services, Query("Suwałki", 15, 3), NOW).miejsca) == 3
+    assert len(search(conn, services, Query("Suwałki", 15, 5), NOW).miejsca) == 5
+
+
+def test_a_first_question_brings_the_area_in_and_a_later_one_reads_the_database(conn: Connection) -> None:
+    services = web(stands=[stand("pine", LON, LAT)])
+
+    search(conn, services, Query("Suwałki", 15, 3), NOW)
+    asked = len(services.calls)
+    again = search(conn, services, Query("Suwałki", 15, 3), NOW)
+
+    assert [m.adres_lesny for m in again.miejsca] == ["pine"]
+    assert len(services.calls) == asked  # nothing fetched the second time
+    assert "pobrane 04.10.2026" in again.zrodla
+
+
+def test_an_area_that_could_not_be_fetched_is_a_warning(conn: Connection) -> None:
+    answer = search(conn, web(stands=OSError("BDL is down")), Query("Suwałki", 15, 3), NOW)
+
+    assert any("nie udało się teraz pobrać" in uwaga.lower() for uwaga in answer.uwagi)

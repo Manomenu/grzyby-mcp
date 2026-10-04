@@ -1,8 +1,8 @@
 """The forest data in PostGIS: writing what the sources send, and the one spatial question asked
 of it — which stands near a point may be walked into.
 
-Writers replace a table's contents and leave the transaction to the caller, so a failed fetch
-halfway through rolls back to the old data instead of leaving half of it. Geometries go in as
+Writers leave the transaction to the caller (lasy/tiles.py: one per tile), so a failed tile rolls
+back to its old data instead of leaving half of it. Geometries go in as
 GeoJSON and come out a valid MultiPolygon (`ST_Multi(ST_CollectionExtract(ST_MakeValid(…), 3))`):
 the services send Polygons and MultiPolygons, and now and then a ring PostGIS calls invalid.
 """
@@ -14,13 +14,29 @@ from datetime import datetime
 
 from psycopg import Connection, sql
 
-from grzyby_server.lasy.model import Obszar, ObszarKind, Wydzielenie
+from grzyby_server.lasy.model import TILE_LAT, TILE_LON, Obszar, ObszarKind, Tile, Wydzielenie
 from grzyby_server.lasy.sources import Feature
 
 
-def replace_wydzielenia(conn: Connection, features: Iterable[Feature]) -> int:
-    """Replaces every stand with the real ones (area_type D-STAN) among `features`."""
-    conn.execute("DELETE FROM wydzielenia")
+def replace_tile(
+    conn: Connection, tile: Tile, stands: Iterable[Feature], areas: Iterable[tuple[ObszarKind, Feature]], now: datetime
+) -> int:
+    """Puts one freshly fetched tile in place: its own stands replaced, the protected areas it
+    touches updated, the tile marked fetched. Returns the number of stands written."""
+    conn.execute("DELETE FROM wydzielenia WHERE tile = %s", (tile.id,))
+    count = upsert_wydzielenia(conn, stands)
+    for kind, feature in areas:
+        upsert_obszar(conn, kind, feature)
+    conn.execute(
+        "INSERT INTO fetched_tiles (tile, fetched_at) VALUES (%s, %s) ON CONFLICT (tile) DO UPDATE SET fetched_at = excluded.fetched_at",
+        (tile.id, now),
+    )
+    return count
+
+
+def upsert_wydzielenia(conn: Connection, features: Iterable[Feature]) -> int:
+    """Writes the real stands (area_type D-STAN) among `features`, each into the tile of its inner
+    point. A stand on a tile's edge comes with both tiles' fetches; the second write updates it."""
     rows = [
         (
             # BDL pads the parts of the address with spaces: "01-12-1-03-226   -a   -00".
@@ -32,6 +48,8 @@ def replace_wydzielenia(conn: Connection, features: Iterable[Feature]) -> int:
             p["sub_area"],
             p["a_year"],
             _geojson(feature),
+            TILE_LAT,
+            TILE_LON,
         )
         for feature in features
         if (p := feature["properties"])["area_type"] == "D-STAN"
@@ -39,27 +57,42 @@ def replace_wydzielenia(conn: Connection, features: Iterable[Feature]) -> int:
     with conn.cursor() as cur:
         cur.executemany(
             """
-            INSERT INTO wydzielenia
-            VALUES (%s, %s, %s, %s, %s, %s, %s, ST_Multi(ST_CollectionExtract(ST_MakeValid(ST_SetSRID(ST_GeomFromGeoJSON(%s), 4326)), 3)))
+            INSERT INTO wydzielenia (adres_lesny, gatunek, wiek, siedlisko, funkcja, powierzchnia_ha, data_year, geom, tile)
+            SELECT a, b, c, d, e, f, g, s.geom, floor(ST_Y(q.p) / s.tile_lat)::int || '_' || floor(ST_X(q.p) / s.tile_lon)::int
+            FROM (
+                SELECT %s AS a, %s AS b, %s::int AS c, %s AS d, %s AS e, %s::float AS f, %s::int AS g,
+                       ST_Multi(ST_CollectionExtract(ST_MakeValid(ST_SetSRID(ST_GeomFromGeoJSON(%s), 4326)), 3)) AS geom,
+                       %s::float AS tile_lat, %s::float AS tile_lon
+            ) AS s, LATERAL (SELECT ST_PointOnSurface(s.geom) AS p) AS q
+            ON CONFLICT (adres_lesny) DO UPDATE SET
+                gatunek = excluded.gatunek, wiek = excluded.wiek, siedlisko = excluded.siedlisko, funkcja = excluded.funkcja,
+                powierzchnia_ha = excluded.powierzchnia_ha, data_year = excluded.data_year, geom = excluded.geom, tile = excluded.tile
             """,
             rows,
         )
     return len(rows)
 
 
-def replace_obszary(conn: Connection, kind: ObszarKind, features: Iterable[Feature]) -> int:
-    """Replaces the protected areas of one kind (a park or a reserve; bans have replace_zakazy)."""
-    conn.execute("DELETE FROM obszary_chronione WHERE kind = %s", (kind,))
-    rows = [(kind, feature["properties"]["nazwa"], _geojson(feature)) for feature in features]
-    with conn.cursor() as cur:
-        cur.executemany(
-            """
-            INSERT INTO obszary_chronione (kind, name, geom)
-            VALUES (%s, %s, ST_Multi(ST_CollectionExtract(ST_MakeValid(ST_SetSRID(ST_GeomFromGeoJSON(%s), 4326)), 3)))
-            """,
-            rows,
-        )
-    return len(rows)
+def upsert_obszar(conn: Connection, kind: ObszarKind, feature: Feature) -> None:
+    """A park or a reserve, one row per area however many tiles bring it (GDOŚ's gid)."""
+    conn.execute(
+        """
+        INSERT INTO obszary_chronione (gdos_id, kind, name, geom)
+        VALUES (%s, %s, %s, ST_Multi(ST_CollectionExtract(ST_MakeValid(ST_SetSRID(ST_GeomFromGeoJSON(%s), 4326)), 3)))
+        ON CONFLICT (gdos_id) DO UPDATE SET kind = excluded.kind, name = excluded.name, geom = excluded.geom
+        """,
+        (f"{kind}:{feature['properties']['gid']}", kind, feature["properties"]["nazwa"], _geojson(feature)),
+    )
+
+
+def fetched_tiles(conn: Connection) -> list[Tile]:
+    return [Tile.parse(tile_id) for (tile_id,) in conn.execute("SELECT tile FROM fetched_tiles ORDER BY tile")]
+
+
+def oldest_fetch(conn: Connection, tiles: Iterable[Tile]) -> datetime | None:
+    """When the stalest of these tiles was fetched — the date the attribution owes BDL."""
+    row = conn.execute("SELECT min(fetched_at) FROM fetched_tiles WHERE tile = ANY(%s)", ([tile.id for tile in tiles],)).fetchone()
+    return row[0] if row else None
 
 
 def replace_zakazy(conn: Connection, features: Iterable[Feature]) -> int:
