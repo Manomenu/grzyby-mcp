@@ -1,8 +1,9 @@
 import json
+from datetime import date
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from grzyby_server.miejsca.model import Answer, Grzyb, Miejsce, as_text, route_url
+from grzyby_server.miejsca.model import Answer, DzienPrognozy, Grzyb, Miejsce, Prognoza, as_text, day_text, forecast_text, route_url
 
 
 def test_the_route_leads_to_the_point_in_google_maps() -> None:
@@ -51,3 +52,24 @@ def test_with_several_mushrooms_the_text_has_a_section_for_all_and_for_each() ->
 
     assert sections == ["### Na wszystkie naraz (średnia ocen)", "### Na: kurka", "### Na: koźlarz"]
     assert "(brak miejsc)" in as_text(answer)
+
+
+def test_the_forecast_text_lists_the_days_and_names_the_best() -> None:
+    days = [
+        DzienPrognozy(dzien=date(2026, 10, 4), nazwa="niedziela 4.10", za_ile_dni=0, ocena=30, na_grzyb={Grzyb.KURKA: 30}, pogoda="sucho"),
+        DzienPrognozy(
+            dzien=date(2026, 10, 5), nazwa="poniedziałek 5.10", za_ile_dni=1, ocena=70, na_grzyb={Grzyb.KURKA: 70}, pogoda="mokro"
+        ),
+    ]
+    forecast = Prognoza(
+        szukano_wokol="Suwałki", grzyby=["kurka"], promien_km=15, dni=days, najlepszy=date(2026, 10, 5), uwagi=[], zrodla="BDL."
+    )
+
+    text = forecast_text(forecast)
+
+    assert "- **poniedziałek 5.10**: 70/100 — mokro" in text
+    assert "**Najlepiej: poniedziałek 5.10.**" in text
+
+
+def test_days_read_as_polish() -> None:
+    assert day_text(date(2026, 10, 10)) == "sobota 10.10"

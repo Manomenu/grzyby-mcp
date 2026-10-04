@@ -21,8 +21,18 @@ MIGRATIONS = Path(__file__).with_name("migrations")
 # Any constant will do; it only has to be the same in every process that migrates.
 MIGRATION_LOCK = 0x6D79_6170  # "myap"
 
+
+def new_pool(conninfo: str, *, open_now: bool = True, max_size: int = 5) -> ConnectionPool:
+    """The pool every part of the server uses (and the tests, so they test the same thing).
+
+    check: a connection is tried before it is handed out. Without it, the first request after the
+    database restarted (a new image, a node reboot) gets a dead connection from the pool and fails
+    with AdminShutdown — a 500 for whoever opens the page first."""
+    return ConnectionPool(conninfo, open=open_now, min_size=1, max_size=max_size, check=ConnectionPool.check_connection)
+
+
 # Opened by the app's lifespan, so importing the app needs no database.
-pool = ConnectionPool(settings.database_url, open=False, min_size=1, max_size=5)
+pool = new_pool(settings.database_url, open_now=False)
 
 
 class MigrationChangedError(RuntimeError):

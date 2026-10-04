@@ -11,7 +11,7 @@ from psycopg_pool import ConnectionPool
 from grzyby_server import db
 from grzyby_server.app import mcp_http
 from grzyby_server.miejsca import tools
-from grzyby_server.miejsca.model import Answer, Grzyb, Miejsce
+from grzyby_server.miejsca.model import Answer, Grzyb, Miejsce, Prognoza
 from grzyby_server.miejsca.search import Query
 from grzyby_server.miejsca.tools import MAP_HTML, MAP_URI
 
@@ -75,6 +75,8 @@ def test_the_tool_answers_in_text_and_as_data_for_the_map(
         {},  # no mushrooms: the chatbot has to ask the user first
         {"grzyby": []},
         {"grzyby": ["prawdziwek"]},  # not on the list
+        {"grzyby": ["kurka"], "za_ile_dni": 6},
+        {"grzyby": ["kurka"], "za_ile_dni": -4},
     ],
 )
 def test_the_arguments_are_checked(client: TestClient, arguments: dict[str, object]) -> None:
@@ -111,3 +113,21 @@ def test_an_unknown_host_is_refused(client: TestClient) -> None:
     )
 
     assert response.status_code in {400, 421}
+
+
+def test_the_when_tool_is_listed_without_a_map_and_answers_in_text(
+    client: TestClient, pool: ConnectionPool, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tool = next(t for t in rpc(client, "tools/list")["tools"] if t["name"] == "kiedy_na_grzyby")
+    assert "ui" not in (tool.get("_meta") or {})
+
+    def best_day(_conn: object, _get_json: object, query: Query, _now: object) -> Prognoza:
+        assert query == Query("Suwałki", [Grzyb.KURKA], 15)
+        return Prognoza(szukano_wokol="Suwałki", grzyby=["kurka"], promien_km=15, dni=[], najlepszy=None, uwagi=[], zrodla="BDL.")
+
+    monkeypatch.setattr(tools, "best_day", best_day)
+    monkeypatch.setattr(db, "pool", pool)
+
+    result = rpc(client, "tools/call", {"name": "kiedy_na_grzyby", "arguments": {"miejscowosc": "Suwałki", "grzyby": ["kurka"]}})
+
+    assert "Kiedy na: kurka" in result["content"][0]["text"]
