@@ -32,6 +32,7 @@ id_ed25519*
 !.artifacts/.gitkeep
 **/logs/
 
-# Agents' scratch space
+# Agents' scratch space — and the one-off scripts they leave where a package's tools can see them
 .claude/worktrees/
 scratchpad/
+*.tmp.mjs
