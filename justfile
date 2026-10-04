@@ -36,7 +36,7 @@ web *args:
 api-types:
     @./scripts/.internal/api-types.sh
 
-# Fetch forest data around the benchmark areas (Suwałki, Chełm, Gdańsk) into the local database — needs `just db up`
+# Fetch forest data around the benchmark areas (Suwałki, Chełm, Gdańsk, Ponikiew Wielka) into the local database — needs `just db up`
 [group('dev')]
 import:
     cd grzyby_server && env -u VIRTUAL_ENV uv run python -m grzyby_server.lasy.importer --benchmark

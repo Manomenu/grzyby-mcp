@@ -23,9 +23,11 @@ from grzyby_server.settings import settings
 
 log = logging.getLogger(__name__)
 
-# Three areas in three RDLPs, far apart — pine country by Suwałki (Białystok), the south-east by
-# Chełm (Lublin), the coast by Gdańsk — what a laptop and the checks work with, 15 km around.
-BENCHMARK = {"Suwałki": (54.10, 22.93), "Chełm": (51.14, 23.47), "Gdańsk": (54.35, 18.65)}
+# Areas far apart, in different RDLPs — pine country by Suwałki (Białystok), the south-east by
+# Chełm (Lublin), the coast by Gdańsk, and Ponikiew Wielka in northern Mazovia, where three
+# RDLPs meet (Białystok, Olsztyn, Warszawa) — what a laptop and the checks work with, 15 km
+# around.
+BENCHMARK = {"Suwałki": (54.10, 22.93), "Chełm": (51.14, 23.47), "Gdańsk": (54.35, 18.65), "Ponikiew Wielka": (52.92, 21.30)}
 BENCHMARK_RADIUS_M = 15_000
 
 

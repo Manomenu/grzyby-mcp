@@ -35,8 +35,8 @@ sprawdzimy licencji danych.
 - [x] **Dane o lasach na żądanie, cała Polska** (4.10.2026): siatka kwadratów ok. 11 × 10 km
       (`lasy/tiles.py`) — kwadrat przychodzi z BDL (kolekcja jego RDLP) i GDOŚ przy pierwszym
       pytaniu o okolicę, równolegle (kilka sekund), potem z bazy. CronJob raz w miesiącu
-      odświeża tylko kwadraty, o które pytano. Lokalnie `just import`: okolice Suwałk, Chełma
-      i Gdańska — punkty odniesienia w trzech RDLP.
+      odświeża tylko kwadraty, o które pytano. Lokalnie `just import`: okolice Suwałk, Chełma,
+      Gdańska i Ponikwi Wielkiej (styk trzech RDLP) — punkty odniesienia.
 - [x] Zakazy wstępu (BDL) na żywo: cały kraj, pobierane przy zapytaniu, ważne 4 godziny
       (`lasy/zakazy.py`); gdy BDL nie odpowiada — stare zakazy i ostrzeżenie w odpowiedzi.
 - [ ] Pogoda z Open-Meteo: opady, temperatura i wilgotność gleby z ostatnich ~30 dni
@@ -52,10 +52,12 @@ sprawdzimy licencji danych.
 - [~] **Wynik punktowy** dla wydzielenia (`miejsca/scoring.py`): jest część stała — gatunek ×
       siedlisko × wiek × wielkość × odległość, każdy składnik z „dlaczego”. **Zostaje:** opady
       z ostatnich 2–3 tygodni, temperatura, wilgotność gleby, pora roku.
-- [ ] **Rodzaj grzyba** — parametr narzędzia (lista, domyślnie wszystkie jadalne; chatbot
-      wypełnia go z pytania: „gdzie na kurki?”), tabele w `scoring.py` na grzyb (borowik,
-      podgrzybek, kurka, koźlarz, maślak, rydz — każdy z własnymi drzewami, wiekiem i progami
-      pogody), chipy z grzybami w widżecie przeliczające kolory od razu.
+- [x] **Rodzaj grzyba** (4.10.2026) — wymagany parametr `grzyby` (borowik, podgrzybek, kurka,
+      koźlarz, maślak, rydz; chatbot dopytuje albo proponuje, gdy użytkownik nie powiedział).
+      Profile w `miejsca/grzyby.py`: drzewa, grupy siedlisk, klasy wieku, sezon po miesiącach;
+      ocena dla każdego grzyba i średnia z listy. Widoki „wszystkie” (średnia) i każdy grzyb
+      osobno — każdy z własnymi miejscami; okienko lasu z oceną każdego grzyba. Liczby w profilach to wiedza
+      grzybiarza, nie pomiar — do korekty po wyjściach w teren (etap 2).
 - [ ] **Zdjęcia widżetu** — gdy będą pogoda i rodzaj grzyba (do README i na stronę), na dwóch
       przykładach:
       1. Suwałki, 15 km, 10 miejsc, kurki;

@@ -1,85 +1,92 @@
-"""How promising a stand is for mushrooms, and why — a plain formula, no AI.
+"""How promising a stand is for the mushrooms asked about, and why — a plain formula, no AI.
 
-Each factor is a number from 0 to 1 with a sentence for the answer; the score is their product,
-so one bad factor (a young plantation, an alder swamp) sinks a stand however good the rest is.
-Today the factors are what the stand *is* — trees, age, site, size, distance. Weather comes next
-(TODO, stage 1); the weights get corrected after walks in the forest (stage 2).
+For each mushroom the score is the product of its factors from grzyby.py — trees, site, age,
+month — times two minor ones of the stand itself, size and distance. One zero rules a stand out
+for that mushroom. Asked about several, a stand has a score for each and their average — the
+map shows either, and each has its own best spots. Weather joins the factors next (TODO,
+stage 1).
 """
 
 import math
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 from grzyby_server.lasy.model import Wydzielenie
+from grzyby_server.miejsca import grzyby
+from grzyby_server.miejsca.model import Grzyb, Miesiac, ProfilGrzyba
 
-# Dominant species → (factor, adjective for the stand's name, why). Codes as BDL writes them; a
-# suffix after the dot is the subspecies (BRZ.O — downy birch, DB.S — pedunculate oak).
-GATUNKI: dict[str, tuple[float, str, str]] = {
-    "SO": (1.0, "sosnowy", "sosna — borowik, podgrzybek, kurka, maślak"),
-    "ŚW": (0.9, "świerkowy", "świerk — borowik, podgrzybek, kurka"),
-    "BK": (0.75, "bukowy", "buk — borowik, kurka"),
-    "DB": (0.75, "dębowy", "dąb — borowik, kurka, koźlarz"),
-    "BRZ": (0.7, "brzozowy", "brzoza — koźlarz, borowik"),
-    "MD": (0.6, "modrzewiowy", "modrzew — maślak modrzewiowy"),
-    "OS": (0.6, "osikowy", "osika — koźlarz czerwony"),
-    "GB": (0.4, "grabowy", "grab — niewiele grzybów jadalnych"),
-    "LP": (0.4, "lipowy", "lipa — niewiele grzybów jadalnych"),
-    "OL": (0.2, "olszowy", "olsza — mokro, mało grzybów jadalnych"),
-}
-INNY_GATUNEK = (0.3, "liściasty", "rzadki gatunek — mało wiadomo o grzybach")
-
-# Forest site type → (factor, why).
-SIEDLISKA: dict[str, tuple[float, str]] = {
-    "BŚW": (1.0, "bór świeży — ulubione siedlisko borowika, podgrzybka i kurki"),
-    "BMŚW": (1.0, "bór mieszany świeży — ulubione siedlisko borowika, podgrzybka i kurki"),
-    "LMŚW": (0.85, "las mieszany świeży — żyzny, wiele gatunków grzybów"),
-    "LŚW": (0.7, "las świeży — żyzny, liściasty"),
-    "BS": (0.6, "bór suchy — grzyby dopiero po obfitych deszczach"),
-    "BW": (0.6, "bór wilgotny — grzyby także w suchszym okresie"),
-    "BMW": (0.6, "bór mieszany wilgotny — grzyby także w suchszym okresie"),
-    "LMW": (0.55, "las mieszany wilgotny"),
-    "LW": (0.5, "las wilgotny"),
-    "BB": (0.3, "bór bagienny — mokro, trudno przejść"),
-    "BMB": (0.3, "bór mieszany bagienny — mokro, trudno przejść"),
-    "LMB": (0.3, "las mieszany bagienny — mokro, trudno przejść"),
-    "OL": (0.2, "ols — bagno, mało grzybów jadalnych"),
-    "OLJ": (0.2, "ols jesionowy — mokro, mało grzybów jadalnych"),
-    "LŁ": (0.2, "las łęgowy — zalewany, mało grzybów jadalnych"),
-}
-NIEZNANE_SIEDLISKO = (0.5, "siedlisko nieznane")
-
-# Age of the dominant species → (below this many years, factor, why). Stands under 20 are dense
-# plantations: few mushrooms, no way through. The last class has no upper bound.
-WIEK: list[tuple[int | None, float, str]] = [
-    (20, 0.0, "młodnik — gęsto, mało grzybów"),
-    (40, 0.6, "młody drzewostan — grzyby już są, ale mniej"),
-    (121, 1.0, "dojrzały drzewostan — najlepszy wiek"),
-    (None, 0.8, "stary drzewostan"),
-]
 MIN_SPACING_M = 1000  # the spots offered should be different walks, not neighbouring stands
 
 
 @dataclass(frozen=True)
 class Score:
     wydzielenie: Wydzielenie
-    points: float
+    per_grzyb: dict[Grzyb, float]
     name: str
-    reasons: list[str]
+    facts: list[str]  # the stand in words: trees, site, age — the same for every mushroom
+    reasons: dict[Grzyb, list[str]]  # why it scores as it does for each mushroom
+
+    @property
+    def points(self) -> float:
+        """The average over the mushrooms asked about — how the map's "all" view and its spots
+        rank stands; for one mushroom, its own score."""
+        return sum(self.per_grzyb.values()) / len(self.per_grzyb)
 
 
-def score(w: Wydzielenie, radius_m: float) -> Score:
-    gatunek, adjective, gatunek_why = GATUNKI.get(species(w.gatunek) or "", INNY_GATUNEK)
-    siedlisko, siedlisko_why = SIEDLISKA.get(w.siedlisko or "", NIEZNANE_SIEDLISKO)
-    wiek, wiek_why = next((factor, why) for below, factor, why in WIEK if below is None or w.wiek < below)
+def score(w: Wydzielenie, wanted: Sequence[Grzyb], month: Miesiac, radius_m: float) -> Score:
+    """`wanted` is not empty."""
+    tree = species(w.gatunek) or ""
+    tree_name, adjective = grzyby.DRZEWA.get(tree, grzyby.INNE_DRZEWO)
+    group, site_name = grzyby.SIEDLISKA.get(w.siedlisko or "", (None, "siedlisko nieznane"))
+    age_class = age_class_of(w.wiek)
+    age_name = f"{grzyby.KLASY_WIEKU[age_class][1]} ({age_text(w.wiek)})"
     # Minor factors, no sentence of their own: a bigger stand is more forest to walk, a nearer one
     # a shorter drive. Neither can take more than a fifth / a third off.
     size = 0.8 + 0.2 * min(1.0, w.powierzchnia_ha / 5)
     nearness = 1 - 0.3 * min(1.0, w.distance_m / radius_m)
+
+    def factors(profile: ProfilGrzyba) -> tuple[float, float, float, float]:
+        site = profile.siedliska.get(group, 0) if group else grzyby.NIEZNANE_SIEDLISKO
+        return profile.drzewa.get(tree, 0), site, profile.wiek[age_class], profile.sezon.get(month, 0)
+
+    def reasons(profile: ProfilGrzyba) -> list[str]:
+        tree_f, site_f, age_f, _season = factors(profile)  # the season goes into words by season_text
+        return [
+            f"{tree_name} — {opinion(tree_f)} dla {profile.dopelniacz}",
+            f"{site_name} — {opinion(site_f)}",
+            f"{age_name} — {opinion(age_f)}",
+            f"{month.nazwa}: {season_text(profile, month)}",
+        ]
+
     return Score(
         wydzielenie=w,
-        points=gatunek * siedlisko * wiek * size * nearness,
+        per_grzyb={g: math.prod(factors(grzyby.PROFILE[g])) * size * nearness for g in wanted},
         name=f"Las {adjective}, {age_text(w.wiek)}, {w.powierzchnia_ha:g} ha".replace(".", ","),
-        reasons=[gatunek_why, siedlisko_why, f"{wiek_why} ({age_text(w.wiek)})"],
+        facts=[tree_name, site_name, age_name],
+        reasons={g: reasons(grzyby.PROFILE[g]) for g in wanted},
     )
+
+
+def pick(scores: list[Score], count: int = 3, by: Callable[[Score], float] = lambda s: s.points) -> list[Score]:
+    """The best `count` by `by` (the average, or one mushroom's score) above zero, each at least
+    MIN_SPACING_M from those before it."""
+    picked: list[Score] = []
+    for candidate in sorted(scores, key=by, reverse=True):
+        if by(candidate) <= 0 or len(picked) == count:
+            break
+        if all(distance_m(candidate.wydzielenie, p.wydzielenie) >= MIN_SPACING_M for p in picked):
+            picked.append(candidate)
+    return picked
+
+
+def in_season(wanted: Sequence[Grzyb], month: Miesiac) -> bool:
+    return any(grzyby.PROFILE[g].sezon.get(month, 0) > 0 for g in wanted)
+
+
+def next_season(g: Grzyb, month: Miesiac) -> Miesiac:
+    """The first month after `month` the mushroom grows in at all."""
+    later = [*range(month + 1, 13), *range(1, month + 1)]
+    return next(Miesiac(m) for m in later if grzyby.PROFILE[g].sezon.get(Miesiac(m), 0) > 0)
 
 
 def species(code: str | None) -> str | None:
@@ -87,15 +94,31 @@ def species(code: str | None) -> str | None:
     return code.split(".")[0] if code else None
 
 
-def pick(scores: list[Score], count: int = 3) -> list[Score]:
-    """The best `count` with points above zero, each at least MIN_SPACING_M from those before it."""
-    picked: list[Score] = []
-    for candidate in sorted(scores, key=lambda s: s.points, reverse=True):
-        if candidate.points <= 0 or len(picked) == count:
-            break
-        if all(distance_m(candidate.wydzielenie, p.wydzielenie) >= MIN_SPACING_M for p in picked):
-            picked.append(candidate)
-    return picked
+def age_class_of(years: int) -> int:
+    return next(i for i, (below, _) in enumerate(grzyby.KLASY_WIEKU) if below is None or years < below)
+
+
+def opinion(factor: float) -> str:
+    """A factor in words."""
+    if factor >= 0.85:
+        return "bardzo dobrze"
+    if factor >= 0.6:
+        return "dobrze"
+    if factor >= 0.3:
+        return "średnio"
+    return "słabo" if factor > 0 else "nie rośnie tu"
+
+
+def season_text(profile: ProfilGrzyba, month: Miesiac) -> str:
+    factor = profile.sezon.get(month, 0)
+    if factor >= 0.9:
+        return "szczyt sezonu"
+    if factor >= 0.5:
+        return "sezon"
+    if factor == 0:
+        return "poza sezonem"
+    # Early or late: whether the peak is still to come this year.
+    return "początek sezonu" if any(f > factor for m, f in profile.sezon.items() if m > month) else "koniec sezonu"
 
 
 def age_text(years: int) -> str:

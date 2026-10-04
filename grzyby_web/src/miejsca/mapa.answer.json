@@ -1,49 +1,134 @@
 {
     "szukano_wokol": "Suwałki, województwo podlaskie, Polska",
+    "grzyby": ["borowik", "koźlarz", "maślak"],
     "promien_km": 10,
     "miejsca": [
         {
             "nazwa": "Las sosnowy, 70 lat, 40 ha",
             "lat": 54.108000000000004,
             "lon": 22.93,
-            "dlaczego": "sosna — borowik, podgrzybek, kurka, maślak; bór mieszany świeży — ulubione siedlisko borowika, podgrzybka i kurki; dojrzały drzewostan — najlepszy wiek (70 lat); 0,9 km od centrum.",
+            "dlaczego": "średnio 41/100: borowik 88, koźlarz 9, maślak 26; sosna; bór mieszany świeży; dojrzały drzewostan (70 lat); 0,9 km od centrum.",
             "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.108000%2C22.930000",
             "adres_lesny": "big-pine"
         },
         {
-            "nazwa": "Las świerkowy, 90 lat, 10 ha",
-            "lat": 54.136,
-            "lon": 22.926,
-            "dlaczego": "świerk — borowik, podgrzybek, kurka; bór mieszany świeży — ulubione siedlisko borowika, podgrzybka i kurki; dojrzały drzewostan — najlepszy wiek (90 lat); 4,0 km od centrum.",
-            "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.136000%2C22.926000",
-            "adres_lesny": "spruce"
-        },
-        {
-            "nazwa": "Las brzozowy, 30 lat, 10 ha",
+            "nazwa": "Las brzozowy, 70 lat, 10 ha",
             "lat": 54.102000000000004,
             "lon": 22.976,
-            "dlaczego": "brzoza — koźlarz, borowik; las mieszany świeży — żyzny, wiele gatunków grzybów; młody drzewostan — grzyby już są, ale mniej (30 lat); 3,0 km od centrum.",
+            "dlaczego": "średnio 33/100: borowik 27, koźlarz 73, maślak 0; brzoza; las mieszany wilgotny; dojrzały drzewostan (70 lat); 3,0 km od centrum.",
             "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.102000%2C22.976000",
             "adres_lesny": "birch"
+        },
+        {
+            "nazwa": "Las sosnowy, 12 lat, 10 ha",
+            "lat": 54.102000000000004,
+            "lon": 22.881,
+            "dlaczego": "średnio 31/100: borowik 4, koźlarz 7, maślak 81; sosna; bór mieszany świeży; młodnik (12 lat); 3,2 km od centrum.",
+            "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.102000%2C22.881000",
+            "adres_lesny": "young"
         }
     ],
+    "miejsca_na_grzyb": {
+        "borowik": [
+            {
+                "nazwa": "Las sosnowy, 70 lat, 40 ha",
+                "lat": 54.108000000000004,
+                "lon": 22.93,
+                "dlaczego": "sosna — bardzo dobrze dla borowika; bór mieszany świeży — bardzo dobrze; dojrzały drzewostan (70 lat) — bardzo dobrze; wrzesień: szczyt sezonu; 0,9 km od centrum.",
+                "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.108000%2C22.930000",
+                "adres_lesny": "big-pine"
+            },
+            {
+                "nazwa": "Las świerkowy, 140 lat, 10 ha",
+                "lat": 54.136,
+                "lon": 22.926,
+                "dlaczego": "świerk — bardzo dobrze dla borowika; bór mieszany świeży — bardzo dobrze; stary drzewostan (140 lat) — dobrze; wrzesień: szczyt sezonu; 4,0 km od centrum.",
+                "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.136000%2C22.926000",
+                "adres_lesny": "spruce"
+            },
+            {
+                "nazwa": "Las brzozowy, 70 lat, 10 ha",
+                "lat": 54.102000000000004,
+                "lon": 22.976,
+                "dlaczego": "brzoza — dobrze dla borowika; las mieszany wilgotny — średnio; dojrzały drzewostan (70 lat) — bardzo dobrze; wrzesień: szczyt sezonu; 3,0 km od centrum.",
+                "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.102000%2C22.976000",
+                "adres_lesny": "birch"
+            }
+        ],
+        "kozlarz": [
+            {
+                "nazwa": "Las brzozowy, 70 lat, 10 ha",
+                "lat": 54.102000000000004,
+                "lon": 22.976,
+                "dlaczego": "brzoza — bardzo dobrze dla koźlarza; las mieszany wilgotny — bardzo dobrze; dojrzały drzewostan (70 lat) — dobrze; wrzesień: szczyt sezonu; 3,0 km od centrum.",
+                "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.102000%2C22.976000",
+                "adres_lesny": "birch"
+            },
+            {
+                "nazwa": "Las sosnowy, 70 lat, 40 ha",
+                "lat": 54.108000000000004,
+                "lon": 22.93,
+                "dlaczego": "sosna — słabo dla koźlarza; bór mieszany świeży — dobrze; dojrzały drzewostan (70 lat) — dobrze; wrzesień: szczyt sezonu; 0,9 km od centrum.",
+                "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.108000%2C22.930000",
+                "adres_lesny": "big-pine"
+            },
+            {
+                "nazwa": "Las sosnowy, 12 lat, 10 ha",
+                "lat": 54.102000000000004,
+                "lon": 22.881,
+                "dlaczego": "sosna — słabo dla koźlarza; bór mieszany świeży — dobrze; młodnik (12 lat) — dobrze; wrzesień: szczyt sezonu; 3,2 km od centrum.",
+                "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.102000%2C22.881000",
+                "adres_lesny": "young"
+            }
+        ],
+        "maslak": [
+            {
+                "nazwa": "Las sosnowy, 12 lat, 10 ha",
+                "lat": 54.102000000000004,
+                "lon": 22.881,
+                "dlaczego": "sosna — bardzo dobrze dla maślaka; bór mieszany świeży — bardzo dobrze; młodnik (12 lat) — bardzo dobrze; wrzesień: szczyt sezonu; 3,2 km od centrum.",
+                "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.102000%2C22.881000",
+                "adres_lesny": "young"
+            },
+            {
+                "nazwa": "Las sosnowy, 70 lat, 40 ha",
+                "lat": 54.108000000000004,
+                "lon": 22.93,
+                "dlaczego": "sosna — bardzo dobrze dla maślaka; bór mieszany świeży — bardzo dobrze; dojrzały drzewostan (70 lat) — średnio; wrzesień: szczyt sezonu; 0,9 km od centrum.",
+                "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.108000%2C22.930000",
+                "adres_lesny": "big-pine"
+            },
+            {
+                "nazwa": "Las świerkowy, 140 lat, 10 ha",
+                "lat": 54.136,
+                "lon": 22.926,
+                "dlaczego": "świerk — słabo dla maślaka; bór mieszany świeży — bardzo dobrze; stary drzewostan (140 lat) — słabo; wrzesień: szczyt sezonu; 4,0 km od centrum.",
+                "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.136000%2C22.926000",
+                "adres_lesny": "spruce"
+            }
+        ]
+    },
     "uwagi": [],
-    "zrodla": "Drzewostany: Bank Danych o Lasach (bdl.lasy.gov.pl), stan na 2026 r., licencja CC BY 4.0; na tej podstawie nasze wyliczenia; parki narodowe i rezerwaty: GDOŚ; zakazy wstępu: BDL, sprawdzone 04.10.2026 12:00; położenie miejscowości: © autorzy OpenStreetMap (Nominatim).",
+    "zrodla": "Drzewostany: Bank Danych o Lasach (bdl.lasy.gov.pl), stan na 2026 r., pobrane 12.09.2026, licencja CC BY 4.0; na tej podstawie nasze wyliczenia; parki narodowe i rezerwaty: GDOŚ; zakazy wstępu: BDL, sprawdzone 12.09.2026 12:00; położenie miejscowości: © autorzy OpenStreetMap (Nominatim).",
     "mapa": {
         "lat": 54.1,
         "lon": 22.93,
         "drzewostany": {
             "ksztalt": [
                 [["_aciIoryjC?_yF_yF??~xF~xF?"]],
-                [["ogkiI_q{jC?_jA_jA??~iA~iA?"]],
                 [["_sdiIoiekC?_jA_jA??~iA~iA?"]],
-                [["wr|hI_q{jC?_jA_jA??~iA~iA?"]],
-                [["_sdiIwwrjC?_jA_jA??~iA~iA?"]]
+                [["_sdiIwwrjC?_jA_jA??~iA~iA?"]],
+                [["ogkiI_q{jC?_jA_jA??~iA~iA?"]],
+                [["wr|hI_q{jC?_jA_jA??~iA~iA?"]]
             ],
-            "wynik": [97, 79, 32, 3, 0],
-            "gatunek": ["SO", "ŚW", "BRZ", "OL", "SO"],
-            "siedlisko": ["BMŚW", "BMŚW", "LMŚW", "OL", "BMŚW"],
-            "wiek": [70, 90, 30, 70, 12]
+            "wynik": {
+                "borowik": [88, 27, 4, 53, 0],
+                "kozlarz": [9, 73, 7, 5, 6],
+                "maslak": [26, 0, 81, 2, 0]
+            },
+            "gatunek": ["SO", "BRZ", "SO", "ŚW", "OL"],
+            "siedlisko": ["BMŚW", "LMW", "BMŚW", "BMŚW", "OL"],
+            "wiek": [70, 70, 12, 140, 70]
         },
         "pominiete": 0,
         "obszary": [
@@ -54,43 +139,146 @@
             }
         ],
         "reguly": {
-            "gatunki": {
-                "SO": [1.0, "sosnowy", "sosna — borowik, podgrzybek, kurka, maślak"],
-                "ŚW": [0.9, "świerkowy", "świerk — borowik, podgrzybek, kurka"],
-                "BK": [0.75, "bukowy", "buk — borowik, kurka"],
-                "DB": [0.75, "dębowy", "dąb — borowik, kurka, koźlarz"],
-                "BRZ": [0.7, "brzozowy", "brzoza — koźlarz, borowik"],
-                "MD": [0.6, "modrzewiowy", "modrzew — maślak modrzewiowy"],
-                "OS": [0.6, "osikowy", "osika — koźlarz czerwony"],
-                "GB": [0.4, "grabowy", "grab — niewiele grzybów jadalnych"],
-                "LP": [0.4, "lipowy", "lipa — niewiele grzybów jadalnych"],
-                "OL": [0.2, "olszowy", "olsza — mokro, mało grzybów jadalnych"]
+            "drzewa": {
+                "SO": ["sosna", "sosnowy"],
+                "ŚW": ["świerk", "świerkowy"],
+                "BK": ["buk", "bukowy"],
+                "DB": ["dąb", "dębowy"],
+                "BRZ": ["brzoza", "brzozowy"],
+                "MD": ["modrzew", "modrzewiowy"],
+                "OS": ["osika", "osikowy"],
+                "GB": ["grab", "grabowy"],
+                "LP": ["lipa", "lipowy"],
+                "OL": ["olsza", "olszowy"],
+                "JS": ["jesion", "jesionowy"],
+                "KL": ["klon", "klonowy"],
+                "JD": ["jodła", "jodłowy"]
             },
-            "inny_gatunek": [0.3, "liściasty", "rzadki gatunek — mało wiadomo o grzybach"],
             "siedliska": {
-                "BŚW": [1.0, "bór świeży — ulubione siedlisko borowika, podgrzybka i kurki"],
-                "BMŚW": [1.0, "bór mieszany świeży — ulubione siedlisko borowika, podgrzybka i kurki"],
-                "LMŚW": [0.85, "las mieszany świeży — żyzny, wiele gatunków grzybów"],
-                "LŚW": [0.7, "las świeży — żyzny, liściasty"],
-                "BS": [0.6, "bór suchy — grzyby dopiero po obfitych deszczach"],
-                "BW": [0.6, "bór wilgotny — grzyby także w suchszym okresie"],
-                "BMW": [0.6, "bór mieszany wilgotny — grzyby także w suchszym okresie"],
-                "LMW": [0.55, "las mieszany wilgotny"],
-                "LW": [0.5, "las wilgotny"],
-                "BB": [0.3, "bór bagienny — mokro, trudno przejść"],
-                "BMB": [0.3, "bór mieszany bagienny — mokro, trudno przejść"],
-                "LMB": [0.3, "las mieszany bagienny — mokro, trudno przejść"],
-                "OL": [0.2, "ols — bagno, mało grzybów jadalnych"],
-                "OLJ": [0.2, "ols jesionowy — mokro, mało grzybów jadalnych"],
-                "LŁ": [0.2, "las łęgowy — zalewany, mało grzybów jadalnych"]
+                "BŚW": ["bory_swieze", "bór świeży"],
+                "BMŚW": ["bory_swieze", "bór mieszany świeży"],
+                "BS": ["bory_suche", "bór suchy"],
+                "LMŚW": ["lasy_swieze", "las mieszany świeży"],
+                "LŚW": ["lasy_swieze", "las świeży"],
+                "BW": ["wilgotne", "bór wilgotny"],
+                "BMW": ["wilgotne", "bór mieszany wilgotny"],
+                "LMW": ["wilgotne", "las mieszany wilgotny"],
+                "LW": ["wilgotne", "las wilgotny"],
+                "BB": ["bagienne", "bór bagienny"],
+                "BMB": ["bagienne", "bór mieszany bagienny"],
+                "LMB": ["bagienne", "las mieszany bagienny"],
+                "OL": ["olsy_legi", "ols"],
+                "OLJ": ["olsy_legi", "ols jesionowy"],
+                "LŁ": ["olsy_legi", "las łęgowy"]
             },
-            "nieznane_siedlisko": [0.5, "siedlisko nieznane"],
-            "wiek": [
-                [20, 0.0, "młodnik — gęsto, mało grzybów"],
-                [40, 0.6, "młody drzewostan — grzyby już są, ale mniej"],
-                [121, 1.0, "dojrzały drzewostan — najlepszy wiek"],
-                [null, 0.8, "stary drzewostan"]
-            ]
+            "grupy_siedlisk": {
+                "bory_swieze": "bory świeże",
+                "bory_suche": "bory suche",
+                "lasy_swieze": "lasy świeże",
+                "wilgotne": "wilgotne",
+                "bagienne": "bagienne",
+                "olsy_legi": "olsy i łęgi"
+            },
+            "klasy_wieku": [
+                [20, "młodnik"],
+                [40, "młody drzewostan"],
+                [121, "dojrzały drzewostan"],
+                [null, "stary drzewostan"]
+            ],
+            "grzyby": {
+                "borowik": {
+                    "nazwa": "borowik",
+                    "dopelniacz": "borowika",
+                    "drzewa": {
+                        "ŚW": 1.0,
+                        "SO": 0.9,
+                        "BK": 0.9,
+                        "DB": 0.9,
+                        "JD": 0.8,
+                        "BRZ": 0.6,
+                        "GB": 0.3
+                    },
+                    "siedliska": {
+                        "bory_swieze": 1.0,
+                        "lasy_swieze": 0.9,
+                        "bory_suche": 0.5,
+                        "wilgotne": 0.5,
+                        "bagienne": 0.1,
+                        "olsy_legi": 0.05
+                    },
+                    "wiek": [0.05, 0.7, 1.0, 0.6],
+                    "sezon": {
+                        "5": 0.2,
+                        "6": 0.3,
+                        "7": 0.6,
+                        "8": 1.0,
+                        "9": 1.0,
+                        "10": 0.6,
+                        "11": 0.15
+                    }
+                },
+                "kozlarz": {
+                    "nazwa": "koźlarz",
+                    "dopelniacz": "koźlarza",
+                    "drzewa": {
+                        "BRZ": 1.0,
+                        "OS": 0.9,
+                        "DB": 0.5,
+                        "GB": 0.3,
+                        "BK": 0.2,
+                        "LP": 0.2,
+                        "OL": 0.2,
+                        "SO": 0.2,
+                        "ŚW": 0.2
+                    },
+                    "siedliska": {
+                        "wilgotne": 1.0,
+                        "lasy_swieze": 0.8,
+                        "bagienne": 0.7,
+                        "bory_swieze": 0.6,
+                        "olsy_legi": 0.4,
+                        "bory_suche": 0.3
+                    },
+                    "wiek": [0.6, 1.0, 0.8, 0.5],
+                    "sezon": {
+                        "6": 0.4,
+                        "7": 0.8,
+                        "8": 1.0,
+                        "9": 1.0,
+                        "10": 0.6,
+                        "11": 0.1
+                    }
+                },
+                "maslak": {
+                    "nazwa": "maślak",
+                    "dopelniacz": "maślaka",
+                    "drzewa": {
+                        "SO": 1.0,
+                        "MD": 1.0,
+                        "ŚW": 0.2
+                    },
+                    "siedliska": {
+                        "bory_suche": 1.0,
+                        "bory_swieze": 0.9,
+                        "lasy_swieze": 0.4,
+                        "wilgotne": 0.3,
+                        "bagienne": 0.1,
+                        "olsy_legi": 0.0
+                    },
+                    "wiek": [1.0, 0.8, 0.3, 0.1],
+                    "sezon": {
+                        "5": 0.1,
+                        "6": 0.1,
+                        "7": 0.3,
+                        "8": 0.7,
+                        "9": 1.0,
+                        "10": 1.0,
+                        "11": 0.5,
+                        "12": 0.05
+                    }
+                }
+            },
+            "miesiac": 9
         }
     }
 }

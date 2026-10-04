@@ -127,6 +127,7 @@
             <span class="spacer"></span>
             <button type="button" id="fullscreen" hidden>Pełny ekran</button>
         </div>
+        <div class="bar" id="mushrooms" role="group" aria-label="Grzyb" hidden></div>
         <div id="map"></div>
         <ol id="list"></ol>
         <ul class="notes" id="notes"></ul>
@@ -138,9 +139,9 @@
             const L = window.L;
 
             // ── colours: one palette per map mode ────────────────────────────────────────
-            // Score classes; points are 0–100 (map_data.py). Zero is a young plantation.
+            // Score classes; points are 0–100 (map_data.py). Zero: the wrong tree, age or month.
             const WYNIK = [
-                { below: 1, color: "#b0b0b0", label: "młodnik — bez szans" },
+                { below: 1, color: "#b0b0b0", label: "nie rośnie tu teraz" },
                 { below: 25, color: "#f3ebc4", label: "słaby" },
                 { below: 50, color: "#cfe3a0", label: "średni" },
                 { below: 75, color: "#7fbf6a", label: "dobry" },
@@ -159,17 +160,17 @@
                 LP: "#d18fb0",
             };
             const INNE_DRZEWO = "#9e9e9e";
-            // Age classes follow the server's own (reguly.wiek); light to dark with age.
+            // Age classes follow the server's own (reguly.klasy_wieku); light to dark with age.
             const WIEK = ["#f1e7d0", "#d9b77e", "#a8743a", "#5e3b1a"];
-            // Site types in groups a mushroom picker tells apart: dry, fresh, wet, bog, alder.
-            const SIEDLISKA = [
-                { label: "bory świeże", color: "#e9c46a", codes: ["BŚW", "BMŚW"] },
-                { label: "lasy świeże", color: "#6aa84f", codes: ["LMŚW", "LŚW"] },
-                { label: "bory suche", color: "#f4e3b5", codes: ["BS"] },
-                { label: "wilgotne", color: "#76c7c0", codes: ["BW", "BMW", "LMW", "LW"] },
-                { label: "bagienne", color: "#3d85c6", codes: ["BB", "BMB", "LMB"] },
-                { label: "olsy i łęgi", color: "#1f4e79", codes: ["OL", "OLJ", "LŁ"] },
-            ];
+            // Site groups are the server's (reguly.siedliska, reguly.grupy_siedlisk); only colours here.
+            const SIEDLISKA = {
+                bory_swieze: "#e9c46a",
+                lasy_swieze: "#6aa84f",
+                bory_suche: "#f4e3b5",
+                wilgotne: "#76c7c0",
+                bagienne: "#3d85c6",
+                olsy_legi: "#1f4e79",
+            };
             const INNE_SIEDLISKO = "#9e9e9e";
 
             // ── the map ───────────────────────────────────────────────────────────────────
@@ -185,6 +186,8 @@
                 attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
             }).addTo(map);
             const layers = L.layerGroup().addTo(map);
+            // The numbered spots of the current view, above everything else.
+            const spotLayer = L.layerGroup().addTo(map);
             // A legend that folds: on a phone, open, it would cover half the map. It starts open only
             // where there is room; a tap on "Legenda" opens or closes it.
             const legend = L.control({ position: "bottomleft" });
@@ -198,6 +201,9 @@
 
             let answer = null;
             let mode = "wynik";
+            // The view: one of the mushrooms asked about, or "all" — the average of them all. Each view
+            // has its own colours and its own numbered spots (the server picks them per view).
+            let grzyb = "all";
             let stands = [];
             // The whole search circle is the first view — and stays so when the host resizes the
             // widget (it may start small and grow, or go full screen) until the user moves the map.
@@ -239,15 +245,21 @@
             const outline = (shape) => shape.map((rings) => rings.map(decode));
 
             const wynikClass = (points) => WYNIK.find((c) => points < c.below);
-            const wiekClass = (rules, age) => rules.wiek.findIndex(([below]) => below === null || age < below);
-            const siedliskoGroup = (code) => SIEDLISKA.find((g) => g.codes.includes(code));
+            const wiekClass = (rules, age) => rules.klasy_wieku.findIndex(([below]) => below === null || age < below);
+            const siedliskoGroup = (rules, code) => rules.siedliska[code]?.[0];
+            const scoreOf = (i) => {
+                const columns = Object.values(answer.mapa.drzewostany.wynik).map((column) => column[i]);
+                if (grzyb === "all") return Math.round(columns.reduce((a, b) => a + b, 0) / columns.length);
+                return answer.mapa.drzewostany.wynik[grzyb][i];
+            };
 
             function colorOf(i) {
                 const d = answer.mapa.drzewostany;
-                if (mode === "wynik") return wynikClass(d.wynik[i]).color;
+                const rules = answer.mapa.reguly;
+                if (mode === "wynik") return wynikClass(scoreOf(i)).color;
                 if (mode === "drzewa") return DRZEWA[d.gatunek[i]] ?? INNE_DRZEWO;
-                if (mode === "wiek") return WIEK[wiekClass(answer.mapa.reguly, d.wiek[i])];
-                return siedliskoGroup(d.siedlisko[i])?.color ?? INNE_SIEDLISKO;
+                if (mode === "wiek") return WIEK[wiekClass(rules, d.wiek[i])];
+                return SIEDLISKA[siedliskoGroup(rules, d.siedlisko[i])] ?? INNE_SIEDLISKO;
             }
 
             function paint() {
@@ -263,19 +275,16 @@
                     for (const c of WYNIK) rows.push([c.color, c.label]);
                 } else if (mode === "drzewa") {
                     const present = [...new Set(d.gatunek)];
-                    for (const code of present) {
-                        const name = rules.gatunki[code]?.[2].split(" — ")[0] ?? "inne";
-                        rows.push([DRZEWA[code] ?? INNE_DRZEWO, name]);
-                    }
+                    for (const code of present) rows.push([DRZEWA[code] ?? INNE_DRZEWO, rules.drzewa[code]?.[0] ?? "inne"]);
                 } else if (mode === "wiek") {
                     let from = 0;
-                    rules.wiek.forEach(([below, , why], i) => {
+                    rules.klasy_wieku.forEach(([below, name], i) => {
                         const range = below === null ? `${from}+ lat` : `${from}–${below - 1} lat`;
-                        rows.push([WIEK[i], `${range}: ${why.split(" — ")[0]}`]);
+                        rows.push([WIEK[i], `${range}: ${name}`]);
                         from = below;
                     });
                 } else {
-                    for (const g of SIEDLISKA) rows.push([g.color, g.label]);
+                    for (const [group, name] of Object.entries(rules.grupy_siedlisk)) rows.push([SIEDLISKA[group] ?? INNE_SIEDLISKO, name]);
                 }
                 rows.push(["#808080", "tu nie wolno (park, rezerwat, zakaz)"]);
                 // BDL describes the State Forests only; private and municipal woods are blank.
@@ -309,18 +318,23 @@
             function popupFor(i, polygon) {
                 const d = answer.mapa.drzewostany;
                 const rules = answer.mapa.reguly;
-                const [, adjective, gatunekWhy] = rules.gatunki[d.gatunek[i]] ?? rules.inny_gatunek;
-                const [, siedliskoWhy] = rules.siedliska[d.siedlisko[i]] ?? rules.nieznane_siedlisko;
-                const [, , wiekWhy] = rules.wiek[wiekClass(rules, d.wiek[i])];
+                const [treeName, adjective] = rules.drzewa[d.gatunek[i]] ?? ["inne drzewo", "mieszany"];
+                const [, siteName] = rules.siedliska[d.siedlisko[i]] ?? [null, "siedlisko nieznane"];
+                const [, ageName] = rules.klasy_wieku[wiekClass(rules, d.wiek[i])];
                 const box = document.createElement("div");
                 box.className = "popup";
                 const title = document.createElement("b");
-                title.textContent = `Las ${adjective} — ${wynikClass(d.wynik[i]).label} (${d.wynik[i]}/100)`;
+                title.textContent = `Las ${adjective}`;
+                box.append(title);
+                // The score for every mushroom asked about, the best first.
+                const scores = Object.entries(d.wynik)
+                    .map(([g, column]) => [rules.grzyby[g].nazwa, column[i]])
+                    .sort((a, b) => b[1] - a[1]);
+                for (const [name, points] of scores) box.append(line(name, `${wynikClass(points).label} (${points}/100)`));
                 box.append(
-                    title,
-                    line("Drzewa", gatunekWhy),
-                    line("Siedlisko", `${d.siedlisko[i] ?? "?"} — ${siedliskoWhy}`),
-                    line("Wiek", `${d.wiek[i]} — ${wiekWhy}`),
+                    line("Drzewa", treeName),
+                    line("Siedlisko", `${d.siedlisko[i] ?? "?"} — ${siteName}`),
+                    line("Wiek", `${d.wiek[i]} lat — ${ageName}`),
                 );
                 const center = polygon.getBounds().getCenter();
                 box.append(routeLink(`https://www.google.com/maps/dir/?api=1&destination=${center.lat.toFixed(6)},${center.lng.toFixed(6)}`));
@@ -373,30 +387,15 @@
                             .addTo(layers);
                     }
                 }
-                answer.miejsca.forEach((spot, i) => {
-                    L.marker([spot.lat, spot.lon], {
-                        icon: L.divIcon({ className: "", html: `<div class="spot-number">${i + 1}</div>`, iconSize: [24, 24] }),
-                        title: spot.nazwa,
-                        zIndexOffset: 1000,
-                    })
-                        .bindPopup(spot.nazwa)
-                        .addTo(layers);
-                    bounds.extend([spot.lat, spot.lon]);
-                });
+                for (const spot of answer.miejsca) bounds.extend([spot.lat, spot.lon]);
                 moved = false;
                 if (circleBounds) fitCircle();
                 else if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
-                if (m) paint();
-
-                const list = document.getElementById("list");
-                list.replaceChildren();
-                for (const spot of answer.miejsca) {
-                    const item = document.createElement("li");
-                    const name = document.createElement("b");
-                    name.textContent = spot.nazwa;
-                    item.append(name, ` — ${spot.dlaczego} `, routeLink(spot.trasa));
-                    list.append(item);
+                if (m) {
+                    renderMushrooms();
+                    paint();
                 }
+                renderSpots();
                 const notes = document.getElementById("notes");
                 notes.replaceChildren();
                 for (const note of answer.uwagi) {
@@ -405,6 +404,56 @@
                     notes.append(item);
                 }
                 document.getElementById("sources").textContent = answer.zrodla;
+            }
+
+            // The numbered spots and the list under the map, for the current view: the shared ones
+            // ("all", or the only mushroom) or one mushroom's own.
+            function renderSpots() {
+                const spots = grzyb === "all" || !answer.miejsca_na_grzyb?.[grzyb] ? answer.miejsca : answer.miejsca_na_grzyb[grzyb];
+                spotLayer.clearLayers();
+                spots.forEach((spot, i) => {
+                    L.marker([spot.lat, spot.lon], {
+                        icon: L.divIcon({ className: "", html: `<div class="spot-number">${i + 1}</div>`, iconSize: [24, 24] }),
+                        title: spot.nazwa,
+                        zIndexOffset: 1000,
+                    })
+                        .bindPopup(spot.nazwa)
+                        .addTo(spotLayer);
+                });
+                const list = document.getElementById("list");
+                list.replaceChildren();
+                for (const spot of spots) {
+                    const item = document.createElement("li");
+                    const name = document.createElement("b");
+                    name.textContent = spot.nazwa;
+                    item.append(name, ` — ${spot.dlaczego} `, routeLink(spot.trasa));
+                    list.append(item);
+                }
+            }
+
+            // One button per mushroom asked about and, when there are several, "wszystkie" (their average).
+            function renderMushrooms() {
+                const bar = document.getElementById("mushrooms");
+                const asked = Object.keys(answer.mapa.drzewostany.wynik);
+                const together = asked.length > 1 ? [["all", "wszystkie"]] : [];
+                if (!asked.includes(grzyb) && !(together.length && grzyb === "all")) grzyb = together.length ? "all" : asked[0];
+                const choices = [...together, ...asked.map((g) => [g, answer.mapa.reguly.grzyby[g].nazwa])];
+                bar.replaceChildren(
+                    ...choices.map(([key, name]) => {
+                        const button = document.createElement("button");
+                        button.type = "button";
+                        button.textContent = name;
+                        button.setAttribute("aria-pressed", String(key === grzyb));
+                        button.addEventListener("click", () => {
+                            grzyb = key;
+                            for (const b of bar.children) b.setAttribute("aria-pressed", String(b === button));
+                            paint();
+                            renderSpots();
+                        });
+                        return button;
+                    }),
+                );
+                bar.hidden = false;
             }
 
             for (const button of document.querySelectorAll("#modes [data-mode]")) {

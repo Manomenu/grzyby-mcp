@@ -42,7 +42,7 @@ just                 # wszystkie komendy, w grupach
 just db up           # lokalny PostgreSQL na :5443
 just server          # API na :6210 (Swagger pod /docs)
 just web             # aplikacja na :3210, /api przekazuje do serwera
-just import          # dane o lasach wokół Suwałk, Chełma i Gdańska do lokalnej bazy (reszta dociąga się przy pytaniu)
+just import          # dane o lasach wokół Suwałk, Chełma, Gdańska i Ponikwi Wielkiej do lokalnej bazy (reszta dociąga się przy pytaniu)
 just up              # cały stack w kontenerach na :8091 — bez klastra
 just import-up       # to samo dla bazy stacku w kontenerach
 just check           # bramka jakości, dokładnie to, co odpala CI

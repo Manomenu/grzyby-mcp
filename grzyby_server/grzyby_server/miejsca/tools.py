@@ -16,7 +16,7 @@ from pydantic import Field
 
 from grzyby_server import db
 from grzyby_server.fetch import get_json
-from grzyby_server.miejsca.model import Answer, as_text
+from grzyby_server.miejsca.model import Answer, Grzyb, as_text
 from grzyby_server.miejsca.search import Query, search
 
 MAP_HTML = Path(__file__).with_name("mapa.html").read_text(encoding="utf-8")
@@ -39,24 +39,42 @@ apps = Apps()
     name="gdzie_na_grzyby",
     title="Gdzie na grzyby",
     description=(
-        "Wskazuje najbardziej obiecujące dla grzybiarza drzewostany (domyślnie 3, na prośbę do 10) w promieniu "
-        "promien_km od podanej miejscowości: gatunek drzew, wiek, siedlisko, uzasadnienie i link "
-        "do trasy. Pomija parki narodowe, rezerwaty i lasy z aktualnym zakazem wstępu. Mapa pod "
-        "odpowiedzią koloruje wszystkie drzewostany w promieniu według oceny, z trybami: wynik, "
-        "drzewa, wiek, siedlisko; kliknięcie w las pokazuje, skąd jego ocena. Działa w całej Polsce, "
+        "Wskazuje drzewostany najbardziej obiecujące na wybrane grzyby (domyślnie 3 miejsca, na prośbę do 10) "
+        "w promieniu promien_km od podanej miejscowości: drzewa, siedlisko, wiek, sezon, uzasadnienie i link "
+        "do trasy. Ocena jest osobna dla każdego grzyba — według jego drzew, siedlisk, wieku lasu i miesiąca. "
+        "Jeśli użytkownik nie powiedział, jakich grzybów szuka, zapytaj go albo zaproponuj (np. borowik, "
+        "podgrzybek, kurka) i wywołaj narzędzie dopiero po jego zgodzie. Pomija parki narodowe, rezerwaty "
+        "i lasy z aktualnym zakazem wstępu. Przy kilku grzybach daje miejsca na wszystkie naraz (średnia ocen) "
+        "i osobno na każdy — zwykle różne. Mapa pod odpowiedzią koloruje wszystkie drzewostany w promieniu, "
+        "z przełącznikiem grzybów i trybami: wynik, drzewa, wiek, siedlisko; kliknięcie w las pokazuje, skąd "
+        "jego ocena. Działa w całej Polsce, "
         "ale zna tylko Lasy Państwowe; pierwsze pytanie o nową okolicę trwa kilka sekund, bo "
         "dane dopiero przychodzą. Pogody jeszcze nie bierze pod uwagę."
     ),
 )
 def gdzie_na_grzyby(
     miejscowosc: Annotated[str, Field(description="Nazwa miejscowości w Polsce, np. „Suwałki” albo „Bryzgiel”")],
+    grzyby: Annotated[
+        list[Grzyb],
+        Field(
+            min_length=1,
+            description=(
+                "Grzyby, których szuka użytkownik — co najmniej jeden. Każda nazwa to grupa, jak mówią grzybiarze: "
+                "borowik = prawdziwki (borowik szlachetny, sosnowy, usiatkowany, ciemnobrązowy); "
+                "podgrzybek = podgrzybek brunatny; kurka = pieprznik jadalny; "
+                "kozlarz = koźlarze (babka; koźlarz czerwony — osikowy i dębowy; grabowy); "
+                "maslak = maślaki (zwyczajny, modrzewiowy); rydz = rydze (mleczaj rydz, rydz świerkowy). "
+                "Grzyba spoza listy (np. kania, gąska) nie zgaduj — powiedz użytkownikowi, że go nie znam."
+            ),
+        ),
+    ],
     promien_km: Annotated[int, Field(ge=1, le=30, description="Promień poszukiwań w km")] = 15,
     ile_miejsc: Annotated[int, Field(ge=1, le=MAX_SPOTS, description="Ile najlepszych miejsc wskazać")] = 3,
 ) -> Annotated[CallToolResult, Answer]:
     """Two forms of one answer: readable text (the chatbot quotes it; a client without the map
     shows only it) and the data the map draws (structuredContent, schema = Answer)."""
     with db.pool.connection() as conn:
-        answer = search(conn, get_json, Query(miejscowosc, promien_km, ile_miejsc), datetime.now(UTC))
+        answer = search(conn, get_json, Query(miejscowosc, grzyby, promien_km, ile_miejsc), datetime.now(UTC))
     return CallToolResult(content=[TextContent(type="text", text=as_text(answer))], structured_content=answer.model_dump(mode="json"))
 
 
@@ -74,6 +92,9 @@ apps.add_html_resource(
 server = MCPServer(
     name="grzyby",
     title="Gdzie na grzyby",
-    instructions=("Odpowiadaj po polsku. Pokaż mapę z miejscami i krótko streść uzasadnienie. Zawsze podaj link do trasy i źródło danych."),
+    instructions=(
+        "Odpowiadaj po polsku. Zanim wywołasz narzędzie, ustal z użytkownikiem, jakich grzybów szuka (albo zaproponuj "
+        "i poczekaj na zgodę). Pokaż mapę z miejscami i krótko streść uzasadnienie. Zawsze podaj link do trasy i źródło danych."
+    ),
     extensions=[apps],
 )
