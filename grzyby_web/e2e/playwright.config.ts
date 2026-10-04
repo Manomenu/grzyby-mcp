@@ -27,7 +27,12 @@ export default defineConfig({
         trace: "retain-on-failure",
         screenshot: "only-on-failure",
     },
-    projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } }],
+    // Every test on a laptop and on a phone (AGENTS.md, "Laptop and phone, both"). Galaxy S24 has
+    // the CSS size of a Samsung S21 FE (360×780) and touch.
+    projects: [
+        { name: "laptop", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
+        { name: "phone", use: { ...devices["Galaxy S24"] } },
+    ],
     webServer: [
         {
             command: "uv run python -m grzyby_server",

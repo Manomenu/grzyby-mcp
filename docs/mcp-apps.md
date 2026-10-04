@@ -123,10 +123,11 @@ zła wartość kończy się błędem `ui.domain mismatch` zamiast mapy.
    ```
 
    `no key` = konektor nie wysyła nagłówka; `wrong key` = stary albo przekręcony klucz.
-3. **Widżet pod CSP lokalnie** — podać `mapa.html` z nagłówkiem CSP jak wyżej (np. mały
-   serwer w Pythonie) i otworzyć w Chromium z Playwright: zero naruszeń CSP w konsoli,
-   kafelki `img.leaflet-tile` wczytane. Błąd `Method not found` jest wtedy w porządku — to
-   `app.connect()` bez hosta.
+3. **Widżet pod CSP lokalnie** — robi to test `grzyby_web/src/miejsca/mapa.e2e.ts` (`just e2e`):
+   pobiera widżet z serwera przez MCP, podaje go z CSP zbudowanym z `_meta.ui.csp`, w iframe
+   bez zgody na nowe okna, i rozmawia z nim jak host (`ui/initialize`, wynik narzędzia,
+   `ui/open-link`, `ui/request-display-mode`). Każdy błąd w konsoli — także naruszenie CSP —
+   oblewa test. `--headed` pokazuje przeglądarkę.
 4. **Narzędzia deweloperskie Claude Desktop:** Help → Troubleshooting → Enable Developer Mode,
    potem `Ctrl+Shift+I`; widżet to wewnętrzny iframe w iframe pod wywołaniem narzędzia.
 

@@ -105,11 +105,6 @@ Dopóki adresu używa tylko właściciel — nie blokuje. Zanim adres trafi do i
 - [ ] Gatunki grzybów: borowik / podgrzybek / kurka — każdy z własnymi drzewami i progiem.
 - [ ] Zgłoszenia „byłem, były / nie było” od użytkowników — jedyna droga do sprawdzania trafności.
 - [ ] Rozszerzenie z okolicy pilotażowej na województwo / kraj.
-- [ ] **Test widżetu mapy w przeglądarce** (szkic istnieje: przy mapie z plamami widżet był
-      oglądany przez udawanego hosta — strona z iframe, która odpowiada na `ui/initialize` i wysyła
-      `ui/notifications/tool-result` — plus serwer podający `mapa.html` z CSP) — gdy debugowanie widżetu zacznie zabierać czas
-      (np. przy rysowaniu wielokątów drzewostanów): test Playwright, który podaje `mapa.html`
-      z nagłówkiem CSP jak w piaskownicy Claude (`docs/mcp-apps.md`, punkt 2), wstrzykuje
-      przykładowy wynik narzędzia jak host i sprawdza, że rysują się kształty i kafelki,
-      a w konsoli nie ma naruszeń CSP. Wtedy „pusta mapa” wychodzi lokalnie, a nie dopiero
-      w Claude.
+- [x] **Test widżetu mapy w przeglądarce** — `grzyby_web/src/miejsca/mapa.e2e.ts` (w `just e2e`
+      i w CI): widżet z prawdziwego serwera przez MCP, pod CSP z jego `_meta.ui.csp`, w piaskownicy
+      bez wyskakujących okien, z udawanym hostem; dane `mapa.answer.json` pilnowane modelem `Answer`.

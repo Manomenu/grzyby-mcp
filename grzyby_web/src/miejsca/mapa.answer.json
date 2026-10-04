@@ -1,0 +1,96 @@
+{
+    "szukano_wokol": "Suwałki, województwo podlaskie, Polska",
+    "promien_km": 10,
+    "miejsca": [
+        {
+            "nazwa": "Las sosnowy, 70 lat, 40 ha",
+            "lat": 54.108000000000004,
+            "lon": 22.93,
+            "dlaczego": "sosna — borowik, podgrzybek, kurka, maślak; bór mieszany świeży — ulubione siedlisko borowika, podgrzybka i kurki; dojrzały drzewostan — najlepszy wiek (70 lat); 0,9 km od centrum.",
+            "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.108000%2C22.930000",
+            "adres_lesny": "big-pine"
+        },
+        {
+            "nazwa": "Las świerkowy, 90 lat, 10 ha",
+            "lat": 54.136,
+            "lon": 22.926,
+            "dlaczego": "świerk — borowik, podgrzybek, kurka; bór mieszany świeży — ulubione siedlisko borowika, podgrzybka i kurki; dojrzały drzewostan — najlepszy wiek (90 lat); 4,0 km od centrum.",
+            "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.136000%2C22.926000",
+            "adres_lesny": "spruce"
+        },
+        {
+            "nazwa": "Las brzozowy, 30 lat, 10 ha",
+            "lat": 54.102000000000004,
+            "lon": 22.976,
+            "dlaczego": "brzoza — koźlarz, borowik; las mieszany świeży — żyzny, wiele gatunków grzybów; młody drzewostan — grzyby już są, ale mniej (30 lat); 3,0 km od centrum.",
+            "trasa": "https://www.google.com/maps/dir/?api=1&destination=54.102000%2C22.976000",
+            "adres_lesny": "birch"
+        }
+    ],
+    "uwagi": [],
+    "zrodla": "Drzewostany: Bank Danych o Lasach (bdl.lasy.gov.pl), stan na 2026 r., licencja CC BY 4.0; na tej podstawie nasze wyliczenia; parki narodowe i rezerwaty: GDOŚ; zakazy wstępu: BDL, sprawdzone 04.10.2026 12:00; położenie miejscowości: © autorzy OpenStreetMap (Nominatim).",
+    "mapa": {
+        "lat": 54.1,
+        "lon": 22.93,
+        "drzewostany": {
+            "ksztalt": [
+                [["_aciIoryjC?_yF_yF??~xF~xF?"]],
+                [["ogkiI_q{jC?_jA_jA??~iA~iA?"]],
+                [["_sdiIoiekC?_jA_jA??~iA~iA?"]],
+                [["wr|hI_q{jC?_jA_jA??~iA~iA?"]],
+                [["_sdiIwwrjC?_jA_jA??~iA~iA?"]]
+            ],
+            "wynik": [97, 79, 32, 3, 0],
+            "gatunek": ["SO", "ŚW", "BRZ", "OL", "SO"],
+            "siedlisko": ["BMŚW", "BMŚW", "LMŚW", "OL", "BMŚW"],
+            "wiek": [70, 90, 30, 70, 12]
+        },
+        "pominiete": 0,
+        "obszary": [
+            {
+                "rodzaj": "park_narodowy",
+                "nazwa": "Park testowy",
+                "ksztalt": [["ogkiI_kckC?_|B_|B??~{B~{B?"]]
+            }
+        ],
+        "reguly": {
+            "gatunki": {
+                "SO": [1.0, "sosnowy", "sosna — borowik, podgrzybek, kurka, maślak"],
+                "ŚW": [0.9, "świerkowy", "świerk — borowik, podgrzybek, kurka"],
+                "BK": [0.75, "bukowy", "buk — borowik, kurka"],
+                "DB": [0.75, "dębowy", "dąb — borowik, kurka, koźlarz"],
+                "BRZ": [0.7, "brzozowy", "brzoza — koźlarz, borowik"],
+                "MD": [0.6, "modrzewiowy", "modrzew — maślak modrzewiowy"],
+                "OS": [0.6, "osikowy", "osika — koźlarz czerwony"],
+                "GB": [0.4, "grabowy", "grab — niewiele grzybów jadalnych"],
+                "LP": [0.4, "lipowy", "lipa — niewiele grzybów jadalnych"],
+                "OL": [0.2, "olszowy", "olsza — mokro, mało grzybów jadalnych"]
+            },
+            "inny_gatunek": [0.3, "liściasty", "rzadki gatunek — mało wiadomo o grzybach"],
+            "siedliska": {
+                "BŚW": [1.0, "bór świeży — ulubione siedlisko borowika, podgrzybka i kurki"],
+                "BMŚW": [1.0, "bór mieszany świeży — ulubione siedlisko borowika, podgrzybka i kurki"],
+                "LMŚW": [0.85, "las mieszany świeży — żyzny, wiele gatunków grzybów"],
+                "LŚW": [0.7, "las świeży — żyzny, liściasty"],
+                "BS": [0.6, "bór suchy — grzyby dopiero po obfitych deszczach"],
+                "BW": [0.6, "bór wilgotny — grzyby także w suchszym okresie"],
+                "BMW": [0.6, "bór mieszany wilgotny — grzyby także w suchszym okresie"],
+                "LMW": [0.55, "las mieszany wilgotny"],
+                "LW": [0.5, "las wilgotny"],
+                "BB": [0.3, "bór bagienny — mokro, trudno przejść"],
+                "BMB": [0.3, "bór mieszany bagienny — mokro, trudno przejść"],
+                "LMB": [0.3, "las mieszany bagienny — mokro, trudno przejść"],
+                "OL": [0.2, "ols — bagno, mało grzybów jadalnych"],
+                "OLJ": [0.2, "ols jesionowy — mokro, mało grzybów jadalnych"],
+                "LŁ": [0.2, "las łęgowy — zalewany, mało grzybów jadalnych"]
+            },
+            "nieznane_siedlisko": [0.5, "siedlisko nieznane"],
+            "wiek": [
+                [20, 0.0, "młodnik — gęsto, mało grzybów"],
+                [40, 0.6, "młody drzewostan — grzyby już są, ale mniej"],
+                [121, 1.0, "dojrzały drzewostan — najlepszy wiek"],
+                [null, 0.8, "stary drzewostan"]
+            ]
+        }
+    }
+}
