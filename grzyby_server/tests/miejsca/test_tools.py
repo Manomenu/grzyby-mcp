@@ -35,6 +35,8 @@ def test_the_tool_is_listed_with_its_map(client: TestClient) -> None:
 
     tool = next(tool for tool in tools if tool["name"] == "gdzie_na_grzyby")
     assert tool["_meta"]["ui"]["resourceUri"] == MAP_URI
+    # The older flat key, which Claude reads (see tools.py).
+    assert tool["_meta"]["ui/resourceUri"] == MAP_URI
 
 
 def test_the_tool_answers_with_a_spot_and_the_way_there(client: TestClient) -> None:
