@@ -17,6 +17,7 @@ from psycopg import Connection
 from grzyby_server import db
 from grzyby_server.fetch import GetJson, get_json
 from grzyby_server.lasy import sources, store
+from grzyby_server.lasy.model import ObszarKind
 from grzyby_server.settings import settings
 
 log = logging.getLogger(__name__)
@@ -35,14 +36,14 @@ def import_all(conn: Connection, get_json: GetJson, now: datetime) -> dict[str, 
             # is allowed there.
             "parki": store.replace_obszary(
                 conn,
-                "park_narodowy",
+                ObszarKind.PARK_NARODOWY,
                 [
                     f
                     for f in sources.fetch_obszary_chronione(get_json, "GDOS:ParkiNarodowe")
                     if "otulina" not in f["properties"]["nazwa"].lower()
                 ],
             ),
-            "rezerwaty": store.replace_obszary(conn, "rezerwat", sources.fetch_obszary_chronione(get_json, "GDOS:Rezerwaty")),
+            "rezerwaty": store.replace_obszary(conn, ObszarKind.REZERWAT, sources.fetch_obszary_chronione(get_json, "GDOS:Rezerwaty")),
         }
         store.record_fetch(conn, STANDS, now)
         store.record_fetch(conn, PROTECTED, now)

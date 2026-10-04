@@ -1,9 +1,18 @@
 <!doctype html>
 <!--
-  The map a chatbot shows under the answer of `gdzie_na_grzyby` (MCP Apps, ui://grzyby/mapa.html).
+  The map a chatbot shows under the answer of `gdzie_na_grzyby` (MCP Apps). Every forest stand
+  around the place is coloured by one of four map modes — score, trees, age, site — with the areas
+  one may not enter greyed out and the three best spots numbered.
+
   The host renders it in a sandboxed iframe under a strict CSP: scripts, styles and images only
-  from the hosts listed in tools.py, no blob: workers. Hence Leaflet with raster tiles — plain
-  <img> elements — and not a WebGL map. Versions are pinned like every dependency here.
+  from the hosts listed in tools.py, no blob: workers. Hence Leaflet with raster tiles and a canvas
+  for the stands — not a WebGL map. Links open through the host (app.openLink), as the sandbox may
+  block new windows. Versions are pinned like every dependency here.
+
+  The data is the tool's structuredContent (miejsca/model.py, Answer): the stands come column by
+  column with outlines as encoded polylines, and with the scoring tables, so a popup explains a
+  stand with the words and numbers its score came from. Colours are this file's business; rules
+  are the server's.
 -->
 <html lang="pl">
     <head>
@@ -14,21 +23,89 @@
             :root {
                 color-scheme: light dark;
                 font-family: system-ui, sans-serif;
+                --line: color-mix(in srgb, currentColor 20%, transparent);
             }
             body {
                 margin: 0;
             }
-            #map {
-                height: 360px;
-            }
-            ul {
-                margin: 0;
+            .bar {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+                align-items: center;
                 padding: 8px 12px;
-                list-style: none;
+            }
+            .bar button {
+                font: inherit;
+                font-size: 13px;
+                padding: 4px 10px;
+                border: 1px solid var(--line);
+                border-radius: 999px;
+                background: transparent;
+                color: inherit;
+                cursor: pointer;
+            }
+            .bar button[aria-pressed="true"] {
+                background: #2f8a4a;
+                border-color: #2f8a4a;
+                color: white;
+            }
+            .bar .spacer {
+                flex: 1;
+            }
+            #map {
+                height: 420px;
+            }
+            body.fullscreen #map {
+                height: calc(100vh - 160px);
+            }
+            .legend {
+                background: rgb(255 255 255 / 0.92);
+                color: #222;
+                padding: 6px 8px;
+                border-radius: 6px;
+                font-size: 12px;
+                line-height: 1.5;
+                max-width: 220px;
+            }
+            .legend i {
+                display: inline-block;
+                width: 12px;
+                height: 12px;
+                margin-right: 6px;
+                vertical-align: -1px;
+                border: 1px solid rgb(0 0 0 / 0.25);
+            }
+            .spot-number {
+                display: grid;
+                place-items: center;
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                background: #6b3e26;
+                color: white;
+                font: bold 13px system-ui, sans-serif;
+                border: 2px solid white;
+                box-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+            }
+            .popup p {
+                margin: 4px 0;
+            }
+            ol,
+            .notes {
+                margin: 0;
+                padding: 8px 12px 8px 32px;
                 font-size: 14px;
+            }
+            .notes {
+                list-style: none;
+                padding-left: 12px;
             }
             li + li {
                 margin-top: 6px;
+            }
+            a {
+                color: #2f8a4a;
             }
             small {
                 display: block;
@@ -38,55 +115,300 @@
         </style>
     </head>
     <body>
+        <div class="bar" id="modes" role="group" aria-label="Tryb mapy">
+            <button type="button" data-mode="wynik" aria-pressed="true">Wynik</button>
+            <button type="button" data-mode="drzewa" aria-pressed="false">Drzewa</button>
+            <button type="button" data-mode="wiek" aria-pressed="false">Wiek</button>
+            <button type="button" data-mode="siedlisko" aria-pressed="false">Siedlisko</button>
+            <span class="spacer"></span>
+            <button type="button" id="fullscreen" hidden>Pełny ekran</button>
+        </div>
         <div id="map"></div>
-        <ul id="list"></ul>
+        <ol id="list"></ol>
+        <ul class="notes" id="notes"></ul>
         <small id="sources"></small>
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <script type="module">
             import { App } from "https://unpkg.com/@modelcontextprotocol/ext-apps@2.0.3/dist/src/app-with-deps.js";
 
             const L = window.L;
-            // Suwałki until the first result arrives.
-            const map = L.map("map").setView([54.1, 22.93], 10);
+
+            // ── colours: one palette per map mode ────────────────────────────────────────
+            // Score classes; points are 0–100 (map_data.py). Zero is a young plantation.
+            const WYNIK = [
+                { below: 1, color: "#b0b0b0", label: "młodnik — bez szans" },
+                { below: 25, color: "#f3ebc4", label: "słaby" },
+                { below: 50, color: "#cfe3a0", label: "średni" },
+                { below: 75, color: "#7fbf6a", label: "dobry" },
+                { below: 101, color: "#2f8a4a", label: "bardzo dobry" },
+            ];
+            const DRZEWA = {
+                SO: "#e3b23c",
+                ŚW: "#2e6b4f",
+                BRZ: "#ece6d6",
+                DB: "#8a5a2b",
+                BK: "#c4622d",
+                OL: "#4f86b0",
+                MD: "#a6b83a",
+                OS: "#9b7cc0",
+                GB: "#7d9c8a",
+                LP: "#d18fb0",
+            };
+            const INNE_DRZEWO = "#9e9e9e";
+            // Age classes follow the server's own (reguly.wiek); light to dark with age.
+            const WIEK = ["#f1e7d0", "#d9b77e", "#a8743a", "#5e3b1a"];
+            // Site types in groups a mushroom picker tells apart: dry, fresh, wet, bog, alder.
+            const SIEDLISKA = [
+                { label: "bory świeże", color: "#e9c46a", codes: ["BŚW", "BMŚW"] },
+                { label: "lasy świeże", color: "#6aa84f", codes: ["LMŚW", "LŚW"] },
+                { label: "bory suche", color: "#f4e3b5", codes: ["BS"] },
+                { label: "wilgotne", color: "#76c7c0", codes: ["BW", "BMW", "LMW", "LW"] },
+                { label: "bagienne", color: "#3d85c6", codes: ["BB", "BMB", "LMB"] },
+                { label: "olsy i łęgi", color: "#1f4e79", codes: ["OL", "OLJ", "LŁ"] },
+            ];
+            const INNE_SIEDLISKO = "#9e9e9e";
+
+            // ── the map ───────────────────────────────────────────────────────────────────
+            // Canvas, not SVG: two thousand polygons stay smooth.
+            const map = L.map("map", { preferCanvas: true }).setView([54.1, 22.93], 10);
             // OpenStreetMap's own tiles: no key, attribution required. Fine for a hobby's traffic;
             // their usage policy rules out heavy use — a busier map gets its own tile source.
             L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
                 maxZoom: 19,
                 attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
             }).addTo(map);
+            const layers = L.layerGroup().addTo(map);
+            const legend = L.control({ position: "bottomleft" });
+            legend.onAdd = () => L.DomUtil.create("div", "legend");
+            legend.addTo(map);
 
-            function show(answer) {
+            let answer = null;
+            let mode = "wynik";
+            let stands = [];
+
+            // Google's encoded polyline → [[lat, lon], …] (the server encodes with PostGIS).
+            function decode(encoded) {
+                const points = [];
+                let index = 0;
+                let lat = 0;
+                let lon = 0;
+                while (index < encoded.length) {
+                    const deltas = [];
+                    for (let k = 0; k < 2; k++) {
+                        let shift = 0;
+                        let result = 0;
+                        let byte;
+                        do {
+                            byte = encoded.charCodeAt(index++) - 63;
+                            result |= (byte & 0x1f) << shift;
+                            shift += 5;
+                        } while (byte >= 0x20);
+                        deltas.push(result & 1 ? ~(result >> 1) : result >> 1);
+                    }
+                    lat += deltas[0];
+                    lon += deltas[1];
+                    points.push([lat / 1e5, lon / 1e5]);
+                }
+                return points;
+            }
+            const outline = (shape) => shape.map((rings) => rings.map(decode));
+
+            const wynikClass = (points) => WYNIK.find((c) => points < c.below);
+            const wiekClass = (rules, age) => rules.wiek.findIndex(([below]) => below === null || age < below);
+            const siedliskoGroup = (code) => SIEDLISKA.find((g) => g.codes.includes(code));
+
+            function colorOf(i) {
+                const d = answer.mapa.drzewostany;
+                if (mode === "wynik") return wynikClass(d.wynik[i]).color;
+                if (mode === "drzewa") return DRZEWA[d.gatunek[i]] ?? INNE_DRZEWO;
+                if (mode === "wiek") return WIEK[wiekClass(answer.mapa.reguly, d.wiek[i])];
+                return siedliskoGroup(d.siedlisko[i])?.color ?? INNE_SIEDLISKO;
+            }
+
+            function paint() {
+                stands.forEach((polygon, i) => polygon.setStyle({ fillColor: colorOf(i) }));
+                renderLegend();
+            }
+
+            function renderLegend() {
+                const rows = [];
+                const d = answer.mapa.drzewostany;
+                const rules = answer.mapa.reguly;
+                if (mode === "wynik") {
+                    for (const c of WYNIK) rows.push([c.color, c.label]);
+                } else if (mode === "drzewa") {
+                    const present = [...new Set(d.gatunek)];
+                    for (const code of present) {
+                        const name = rules.gatunki[code]?.[2].split(" — ")[0] ?? "inne";
+                        rows.push([DRZEWA[code] ?? INNE_DRZEWO, name]);
+                    }
+                } else if (mode === "wiek") {
+                    let from = 0;
+                    rules.wiek.forEach(([below, , why], i) => {
+                        const range = below === null ? `${from}+ lat` : `${from}–${below - 1} lat`;
+                        rows.push([WIEK[i], `${range}: ${why.split(" — ")[0]}`]);
+                        from = below;
+                    });
+                } else {
+                    for (const g of SIEDLISKA) rows.push([g.color, g.label]);
+                }
+                rows.push(["#808080", "tu nie wolno (park, rezerwat, zakaz)"]);
+                // BDL describes the State Forests only; private and municipal woods are blank.
+                rows.push([null, "tylko lasy państwowe (BDL)"]);
+                const box = legend.getContainer();
+                box.replaceChildren();
+                for (const [color, label] of rows) {
+                    const line = document.createElement("div");
+                    if (color) {
+                        const swatch = document.createElement("i");
+                        swatch.style.background = color;
+                        line.append(swatch);
+                    } else {
+                        line.style.opacity = "0.7";
+                    }
+                    line.append(label);
+                    box.append(line);
+                }
+            }
+
+            function line(label, text) {
+                const p = document.createElement("p");
+                const b = document.createElement("b");
+                b.textContent = `${label}: `;
+                p.append(b, text);
+                return p;
+            }
+
+            function popupFor(i, polygon) {
+                const d = answer.mapa.drzewostany;
+                const rules = answer.mapa.reguly;
+                const [, adjective, gatunekWhy] = rules.gatunki[d.gatunek[i]] ?? rules.inny_gatunek;
+                const [, siedliskoWhy] = rules.siedliska[d.siedlisko[i]] ?? rules.nieznane_siedlisko;
+                const [, , wiekWhy] = rules.wiek[wiekClass(rules, d.wiek[i])];
+                const box = document.createElement("div");
+                box.className = "popup";
+                const title = document.createElement("b");
+                title.textContent = `Las ${adjective} — ${wynikClass(d.wynik[i]).label} (${d.wynik[i]}/100)`;
+                box.append(
+                    title,
+                    line("Drzewa", gatunekWhy),
+                    line("Siedlisko", `${d.siedlisko[i] ?? "?"} — ${siedliskoWhy}`),
+                    line("Wiek", `${d.wiek[i]} — ${wiekWhy}`),
+                );
+                const center = polygon.getBounds().getCenter();
+                box.append(routeLink(`https://www.google.com/maps/dir/?api=1&destination=${center.lat.toFixed(6)},${center.lng.toFixed(6)}`));
+                return box;
+            }
+
+            function routeLink(url) {
+                const link = document.createElement("a");
+                link.href = url;
+                link.textContent = "trasa w Google Maps";
+                link.addEventListener("click", (event) => {
+                    event.preventDefault();
+                    app.openLink({ url }).catch(() => window.open(url, "_blank", "noopener"));
+                });
+                return link;
+            }
+
+            function show(result) {
+                answer = result;
+                layers.clearLayers();
+                stands = [];
+                const bounds = L.latLngBounds([]);
+                const m = answer.mapa;
+                if (m) {
+                    const center = [m.lat, m.lon];
+                    L.circle(center, {
+                        radius: answer.promien_km * 1000,
+                        color: "#6b3e26",
+                        weight: 1,
+                        dashArray: "4 6",
+                        fill: false,
+                        interactive: false,
+                    }).addTo(layers);
+                    m.drzewostany.ksztalt.forEach((shape, i) => {
+                        // A faint outline: a thousand dark borders would turn the forest into a grid.
+                        const polygon = L.polygon(outline(shape), { weight: 0.4, color: "#000", opacity: 0.25, fillOpacity: 0.8 });
+                        polygon.bindPopup(() => popupFor(i, polygon));
+                        polygon.addTo(layers);
+                        stands.push(polygon);
+                        bounds.extend(polygon.getBounds());
+                    });
+                    // Above the stands, so their grey and their name win.
+                    for (const area of m.obszary) {
+                        L.polygon(outline(area.ksztalt), { color: "#555", weight: 1.5, dashArray: "5 4", fillColor: "#808080", fillOpacity: 0.45 })
+                            .bindTooltip(`${area.nazwa} — tu nie wolno`, { sticky: true })
+                            .addTo(layers);
+                    }
+                }
+                answer.miejsca.forEach((spot, i) => {
+                    L.marker([spot.lat, spot.lon], {
+                        icon: L.divIcon({ className: "", html: `<div class="spot-number">${i + 1}</div>`, iconSize: [24, 24] }),
+                        title: spot.nazwa,
+                        zIndexOffset: 1000,
+                    })
+                        .bindPopup(spot.nazwa)
+                        .addTo(layers);
+                    bounds.extend([spot.lat, spot.lon]);
+                });
+                // The forests and the spots, not the whole circle: much of it may have no forest data.
+                if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
+                else if (m) map.fitBounds(L.latLng(m.lat, m.lon).toBounds(answer.promien_km * 2000));
+                if (m) paint();
+
                 const list = document.getElementById("list");
                 list.replaceChildren();
-                const points = [];
                 for (const spot of answer.miejsca) {
-                    // A circle, not the default pin: the pin is an image Leaflet looks up by path.
-                    L.circleMarker([spot.lat, spot.lon], { radius: 10, color: "#6b3e26", fillOpacity: 0.6 })
-                        .bindPopup(spot.nazwa)
-                        .addTo(map);
-                    points.push([spot.lat, spot.lon]);
-
                     const item = document.createElement("li");
-                    const link = document.createElement("a");
-                    link.href = spot.trasa;
-                    link.target = "_blank";
-                    link.rel = "noopener";
-                    link.textContent = "trasa";
                     const name = document.createElement("b");
                     name.textContent = spot.nazwa;
-                    item.append(name, ` — ${spot.dlaczego} `, link);
+                    item.append(name, ` — ${spot.dlaczego} `, routeLink(spot.trasa));
                     list.append(item);
                 }
-                if (points.length) map.fitBounds(points, { padding: [60, 60], maxZoom: 13 });
+                const notes = document.getElementById("notes");
+                notes.replaceChildren();
+                for (const note of answer.uwagi) {
+                    const item = document.createElement("li");
+                    item.textContent = `⚠ ${note}`;
+                    notes.append(item);
+                }
                 document.getElementById("sources").textContent = answer.zrodla;
             }
 
-            const app = new App({ name: "grzyby-mapa", version: "0.1.0" });
+            for (const button of document.querySelectorAll("#modes [data-mode]")) {
+                button.addEventListener("click", () => {
+                    mode = button.dataset.mode;
+                    for (const b of document.querySelectorAll("#modes [data-mode]")) b.setAttribute("aria-pressed", String(b === button));
+                    if (answer?.mapa) paint();
+                });
+            }
+
+            // ── the host ──────────────────────────────────────────────────────────────────
+            const app = new App({ name: "grzyby-mapa", version: "0.2.0" }, { availableDisplayModes: ["inline", "fullscreen"] });
             // Before connect(): the host may send the result right away.
             app.ontoolresult = (result) => {
                 if (result.structuredContent) show(result.structuredContent);
             };
-            app.connect();
+
+            // Full screen only where the host offers it (spec: check availableDisplayModes first).
+            const fullscreen = document.getElementById("fullscreen");
+            function onDisplayMode(displayMode) {
+                const full = displayMode === "fullscreen";
+                document.body.classList.toggle("fullscreen", full);
+                fullscreen.textContent = full ? "Zamknij pełny ekran" : "Pełny ekran";
+                map.invalidateSize();
+            }
+            fullscreen.addEventListener("click", async () => {
+                const full = document.body.classList.contains("fullscreen");
+                const result = await app.requestDisplayMode({ mode: full ? "inline" : "fullscreen" });
+                onDisplayMode(result.mode);
+            });
+            app.onhostcontextchanged = (context) => {
+                if (context.displayMode) onDisplayMode(context.displayMode);
+            };
+            await app.connect();
+            fullscreen.hidden = !app.getHostContext()?.availableDisplayModes?.includes("fullscreen");
         </script>
     </body>
 </html>

@@ -7,7 +7,16 @@ from grzyby_server.miejsca import scoring
 
 RADIUS_M = 15_000
 PINE = Wydzielenie(
-    adres_lesny="a", gatunek="SO", wiek=70, siedlisko="BMŚW", powierzchnia_ha=10.0, data_year=2026, lat=54.1, lon=22.9, distance_m=1000
+    adres_lesny="a",
+    gatunek="SO",
+    wiek=70,
+    siedlisko="BMŚW",
+    powierzchnia_ha=10.0,
+    data_year=2026,
+    lat=54.1,
+    lon=22.9,
+    distance_m=1000,
+    shape=[],
 )
 
 
@@ -24,7 +33,7 @@ def test_a_mature_pine_stand_on_fresh_mixed_forest_scores_near_the_top() -> None
 
 
 def test_a_young_plantation_scores_zero_whatever_else() -> None:
-    assert points(replace(PINE, wiek=scoring.MLODNIK - 1)) == 0
+    assert points(replace(PINE, wiek=19)) == 0  # the first class of scoring.WIEK ends at 20
 
 
 def test_an_alder_swamp_scores_far_below_a_pine_forest() -> None:

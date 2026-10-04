@@ -47,7 +47,14 @@ SIEDLISKA: dict[str, tuple[float, str]] = {
 }
 NIEZNANE_SIEDLISKO = (0.5, "siedlisko nieznane")
 
-MLODNIK = 20  # younger stands are dense plantations: few mushrooms, no way through
+# Age of the dominant species → (below this many years, factor, why). Stands under 20 are dense
+# plantations: few mushrooms, no way through. The last class has no upper bound.
+WIEK: list[tuple[int | None, float, str]] = [
+    (20, 0.0, "młodnik — gęsto, mało grzybów"),
+    (40, 0.6, "młody drzewostan — grzyby już są, ale mniej"),
+    (121, 1.0, "dojrzały drzewostan — najlepszy wiek"),
+    (None, 0.8, "stary drzewostan"),
+]
 MIN_SPACING_M = 1000  # the spots offered should be different walks, not three neighbouring stands
 
 
@@ -60,16 +67,9 @@ class Score:
 
 
 def score(w: Wydzielenie, radius_m: float) -> Score:
-    gatunek, adjective, gatunek_why = GATUNKI.get((w.gatunek or "").split(".")[0], INNY_GATUNEK)
+    gatunek, adjective, gatunek_why = GATUNKI.get(species(w.gatunek) or "", INNY_GATUNEK)
     siedlisko, siedlisko_why = SIEDLISKA.get(w.siedlisko or "", NIEZNANE_SIEDLISKO)
-    if w.wiek < MLODNIK:
-        wiek, wiek_why = 0.0, f"młodnik ({age_text(w.wiek)}) — gęsto, mało grzybów"
-    elif w.wiek < 40:
-        wiek, wiek_why = 0.6, f"młody drzewostan ({age_text(w.wiek)}) — grzyby już są, ale mniej"
-    elif w.wiek <= 120:
-        wiek, wiek_why = 1.0, f"dojrzały drzewostan ({age_text(w.wiek)}) — najlepszy wiek"
-    else:
-        wiek, wiek_why = 0.8, f"stary drzewostan ({age_text(w.wiek)})"
+    wiek, wiek_why = next((factor, why) for below, factor, why in WIEK if below is None or w.wiek < below)
     # Minor factors, no sentence of their own: a bigger stand is more forest to walk, a nearer one
     # a shorter drive. Neither can take more than a fifth / a third off.
     size = 0.8 + 0.2 * min(1.0, w.powierzchnia_ha / 5)
@@ -78,8 +78,13 @@ def score(w: Wydzielenie, radius_m: float) -> Score:
         wydzielenie=w,
         points=gatunek * siedlisko * wiek * size * nearness,
         name=f"Las {adjective}, {age_text(w.wiek)}, {w.powierzchnia_ha:g} ha".replace(".", ","),
-        reasons=[gatunek_why, siedlisko_why, wiek_why],
+        reasons=[gatunek_why, siedlisko_why, f"{wiek_why} ({age_text(w.wiek)})"],
     )
+
+
+def species(code: str | None) -> str | None:
+    """BDL's species code without the subspecies: BRZ.O → BRZ."""
+    return code.split(".")[0] if code else None
 
 
 def pick(scores: list[Score], count: int = 3) -> list[Score]:
