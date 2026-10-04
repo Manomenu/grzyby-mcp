@@ -5,10 +5,16 @@ odpowiedzi dostajesz **mapkę** z zaznaczonym kawałkiem lasu, krótkie uzasadni
 opady, temperatura) i link do trasy w Google Maps. Dane: Bank Danych o Lasach (drzewostany,
 zakazy wstępu) i pogoda z Open-Meteo.
 
-**Stan:** „hello world” MCP. Serwer udostępnia pod `/mcp` narzędzie `gdzie_na_grzyby` z mapką
-(MCP Apps) — na razie zawsze wskazuje ten sam prawdziwy drzewostan pod Suwałkami; prawdziwe
-wyliczanie miejsc to etap 1. Plan i kolejne etapy: [TODO.md](TODO.md), propozycja stacka:
-[docs/dev/propozycja-stacka.md](docs/dev/propozycja-stacka.md).
+**Stan:** etap 1 w toku. Narzędzie `gdzie_na_grzyby` pod `/mcp` (z mapką, MCP Apps) wskazuje
+trzy najbardziej obiecujące prawdziwe drzewostany wokół miejscowości — według gatunku, wieku
+i siedliska, z pominięciem parków narodowych, rezerwatów i lasów z zakazem wstępu. Zna tylko
+okolice Suwałk i Wigier; pogody jeszcze nie bierze pod uwagę. Plan: [TODO.md](TODO.md),
+propozycja stacka: [docs/dev/propozycja-stacka.md](docs/dev/propozycja-stacka.md).
+
+Skąd dane: drzewostany (BDL), parki i rezerwaty (GDOŚ) kopiuje do PostGIS import raz
+w miesiącu (`grzyby_server/lasy/importer.py`, CronJob w charcie); zakazy wstępu (BDL) serwer
+pobiera sam przy zapytaniu i trzyma 4 godziny; nazwę miejscowości zamienia na współrzędne
+Nominatim (OpenStreetMap), z zapamiętaniem w bazie.
 
 Projekt hobbystyczny, bez części komercyjnej.
 
@@ -34,7 +40,9 @@ just                 # wszystkie komendy, w grupach
 just db up           # lokalny PostgreSQL na :5443
 just server          # API na :6210 (Swagger pod /docs)
 just web             # aplikacja na :3210, /api przekazuje do serwera
+just import          # dane o lasach do lokalnej bazy (BDL, GDOŚ; ~15 s) — bez tego narzędzie nic nie znajdzie
 just up              # cały stack w kontenerach na :8091 — bez klastra
+just import-up       # to samo dla bazy stacku w kontenerach
 just check           # bramka jakości, dokładnie to, co odpala CI
 just e2e             # testy w przeglądarce na prawdziwym serwerze i bazie
 just secrets backup  # kopia lokalnych plików .env w Bitwardenie (restore na nowej maszynie)

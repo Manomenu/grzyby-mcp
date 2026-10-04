@@ -36,6 +36,11 @@ web *args:
 api-types:
     @./scripts/.internal/api-types.sh
 
+# Fill the local database with forest data (BDL stands, GDOŚ parks and reserves) — needs `just db up`
+[group('dev')]
+import:
+    cd grzyby_server && env -u VIRTUAL_ENV uv run python -m grzyby_server.lasy.importer
+
 # ---------------------------------------------------------------------------------------
 # infra — the containerised stack: the same images the cluster runs, wired the same way
 # ---------------------------------------------------------------------------------------
@@ -45,12 +50,20 @@ api-types:
 up:
     podman compose up -d --build
     @echo "web   http://localhost:8091"
+    @# The database lives in a volume, so the import is needed once per fresh volume, not every time.
+    @podman compose exec -T postgres psql -U grzyby -d grzyby -tAc "SELECT count(*) FROM wydzielenia" 2>/dev/null | grep -qv '^0$' \
+        || echo "no forest data yet — run: just import-up"
 
 # Rebuild the images without the layer cache, then start (slow, on purpose)
 [group('infra')]
 rebuild:
     podman compose build --no-cache
     @just up
+
+# Fill the stack's database with forest data — the same import the cluster runs monthly
+[group('infra')]
+import-up:
+    podman compose run --rm server python -m grzyby_server.lasy.importer
 
 # Stop the stack (images and the database volume stay)
 [group('infra')]

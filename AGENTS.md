@@ -348,14 +348,28 @@ the platform repo:
 
 ## 9. Naming
 
-- **The domain's own language** for what the users' work is made of — when the users speak
-  Polish about their domain, those names are Polish (without diacritics) and map 1:1 onto
-  their documents.
-- **English** for every technical name: modules, files, functions, API routes, UI and
-  infrastructure concepts, test helpers, CSS classes.
-- When in doubt: would a user use the word about their work? Domain language. Would only a
+Two vocabularies, chosen word by word:
+
+- **Domain words in the users' language.** What the users' work is made of — its things, their
+  attributes, the terms of the trade — is named the way the users say it. When they speak
+  Polish about their domain, those names are Polish (without diacritics) and map 1:1 onto their
+  documents and data sources: `wydzielenie`, `drzewostan`, `siedlisko`, `gatunek`,
+  `zakazy_wstepu`.
+- **Software words in technical English.** Everything that exists only because there is
+  software: modules and files named by their role (`store.py`, `sources.py`, `search.py`,
+  `scoring.py`, `importer.py`), verbs (`fetch`, `replace`, `refresh`, `search`, `score`,
+  `pick`), generic fields (`id`, `name`, `kind`, `created_at`), infrastructure (caches, jobs,
+  settings, env vars, chart values), API routes, test helpers, CSS classes.
+- **One name often holds both:** English structure around domain nouns —
+  `fetch_zakazy_wstepu()`, `replace_wydzielenia()`, `wydzielenia_within()`, `class
+  Wydzielenie`, the table `wydzielenia` next to `geocoding_cache`. A feature folder is named
+  after its part of the domain (`lasy/`, `miejsca/`); the modules inside it after their
+  technical role.
+- **The test:** would a user say the word about their work? Domain language. Would only a
   programmer? English.
-- Text the user reads (labels, messages) is in the users' language regardless.
+- **Text people read** is in the users' language regardless: labels and messages, and
+  everything a chatbot reads — an MCP tool's name, parameters, description and answer fields
+  (`gdzie_na_grzyby(miejscowosc, promien_km)`).
 
 ## 10. Commands: `justfile` vs `scripts/.internal/`
 

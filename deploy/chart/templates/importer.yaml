@@ -1,0 +1,51 @@
+{{- /*
+Import danych o lasach: drzewostany z BDL, parki narodowe i rezerwaty z GDOŚ
+(grzyby_server/lasy/importer.py). Drzewostany zmieniają się raz w roku, parki prawie nigdy —
+stąd raz w miesiącu. Zakazy wstępu nie idą tędy: serwer pobiera je sam przy zapytaniu.
+
+Ten sam obraz co serwer, inna komenda. Pierwsze wypełnienie świeżej bazy, bez czekania
+na harmonogram:
+  kubectl -n <namespace> create job --from=cronjob/<release>-importer <release>-importer-now
+*/ -}}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "app.name" . }}-importer
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: importer
+spec:
+  schedule: {{ .Values.importer.schedule | quote }}
+  timeZone: Europe/Warsaw
+  # Dwa importy naraz tylko by się blokowały w bazie.
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      # Usługi BDL i GDOŚ bywają chwilowo niedostępne; nieudany import zostawia stare dane.
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            {{- include "app.labels" . | nindent 12 }}
+            app.kubernetes.io/component: importer
+        spec:
+          restartPolicy: Never
+          {{- with .Values.image.pullSecret }}
+          imagePullSecrets:
+            - name: {{ . }}
+          {{- end }}
+          containers:
+            - name: importer
+              image: {{ include "app.image" (dict "Values" .Values "component" "server") }}
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command: ["python", "-m", "grzyby_server.lasy.importer"]
+              {{- with .Values.server.databaseSecret }}
+              envFrom:
+                - secretRef:
+                    name: {{ . }}
+              {{- end }}
+              resources:
+                {{- toYaml .Values.importer.resources | nindent 16 }}

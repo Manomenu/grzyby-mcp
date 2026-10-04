@@ -61,12 +61,19 @@ type = "layers"
 layers = [
     "grzyby_server.app",
     "grzyby_server.miejsca",
-    "grzyby_server.db | grzyby_server.mcp_key",
+    "grzyby_server.lasy",
+    "grzyby_server.db | grzyby_server.fetch | grzyby_server.mcp_key",
     "grzyby_server.settings",
 ]
 
 [[tool.importlinter.contracts]]
-name = "Inside miejsca: MCP tools > models"
+name = "Inside miejsca: MCP tools > search > scoring, geocoding > models"
 type = "layers"
 containers = ["grzyby_server.miejsca"]
-layers = ["tools", "model"]
+layers = ["tools", "search", "scoring | geocoding", "model"]
+
+[[tool.importlinter.contracts]]
+name = "Inside lasy: import, entry bans > SQL > sources, models"
+type = "layers"
+containers = ["grzyby_server.lasy"]
+layers = ["importer | zakazy", "store", "sources | model"]
