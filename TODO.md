@@ -16,17 +16,14 @@ sprawdzimy licencji danych.
 
 ## 0. Rozpoznanie, zanim powstanie kod
 
-- [ ] **Licencja Banku Danych o Lasach** — czy wolno pobrać drzewostany (WFS) i pokazywać
-      je w swojej usłudze; jakie przypisanie źródła. Bez tego nie ma projektu.
-- [ ] **Warstwy BDL** — jakie dokładnie są w WFS: wydzielenia z gatunkiem panującym, wiekiem,
-      siedliskiem; czasowe zakazy wstępu. Pobrać próbkę dla jednego nadleśnictwa.
-- [ ] **IMGW** — które stacje opadowe są w okolicy pilotażowej, jak gęsto, z jakim
-      opóźnieniem publikują dane dobowe.
+- [x] **Licencja Banku Danych o Lasach** — CC BY 4.0 + obowiązki z regulaminu (`docs/dev/rozpoznanie-danych.md`); zostaje mail do BDL przed publicznym startem.
+- [x] **Warstwy BDL** — OGC API Features: gatunek, wiek, siedlisko; zakazy przez ArcGIS REST; próbka w `.artifacts/dane/`.
+- [x] **IMGW** — tylko bieżący pomiar (stacja Suwałki); historia z Open-Meteo albo własne zbieranie.
 - [ ] **Open-Meteo** — wilgotność gleby dla tych samych punktów (darmowe niekomercyjnie);
       porównać z IMGW, czy warto mieć oba.
 - [ ] **MCP Apps** — sprawdzić aktualny stan rozszerzenia (widżet z mapą) w Claude i ChatGPT,
       zrobić „hello world”: narzędzie zwraca mapkę z jednym punktem.
-- [ ] **Wybór okolicy pilotażowej** — tam, gdzie właściciel faktycznie chodzi na grzyby.
+- [x] **Wybór okolicy pilotażowej** — Suwałki / Wigierski Park Narodowy (park sam w sobie: zbiór zakazany, do potwierdzenia).
 
 ## 1. MVP — jedna okolica, jedno narzędzie
 
