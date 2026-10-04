@@ -15,6 +15,9 @@ server:
   # A Secret with DATABASE_URL in the release namespace, created by the platform repo. Without
   # a database the server deliberately does not start.
   databaseSecret: ""
+  # A Secret with MCP_KEY — the key /mcp asks for (grzyby_server/mcp_key.py), created by the
+  # platform repo. Empty = /mcp open, which is only for a laptop.
+  mcpKeySecret: ""
   # Extra Host headers /mcp answers to (the SDK's DNS-rebinding guard). The ingress host and the
   # web Service's own name (the smoke test calls through it) are always allowed.
   mcpHosts: []

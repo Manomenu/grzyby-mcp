@@ -61,7 +61,7 @@ type = "layers"
 layers = [
     "grzyby_server.app",
     "grzyby_server.miejsca",
-    "grzyby_server.db",
+    "grzyby_server.db | grzyby_server.mcp_key",
     "grzyby_server.settings",
 ]
 
