@@ -1,0 +1,73 @@
+{{- /*
+Sprawdzenie po wdrożeniu. Argo uruchamia ten Job po każdej synchronizacji (hook PostSync),
+gdy reszta wydania jest już zdrowa. Kilka zapytań przez Service'y w klastrze — tak jak
+przyjdzie ruch z tunelu — i koniec. Gdy któreś się nie uda, synchronizacja w Argo jest
+nieudana (czerwona w `just argo apps`), a log Joba mówi, co padło.
+
+Pełne testy w przeglądarce biegną w CI, zanim obraz w ogóle powstanie.
+*/ -}}
+{{- if .Values.smokeTest.enabled }}
+{{- /* Service web wystawia port 80 (templates/web.yaml), więc w adresie nie ma portu. */ -}}
+{{- $web := printf "http://%s-web" (include "app.name" .) }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "app.name" . }}-smoke-test
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: smoke-test
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    # Poprzedni Job (i jego log) zostaje do następnego wdrożenia, potem znika.
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  # Bez ponowień: chwilowe problemy łapie pętla w skrypcie, a powtórka Joba tylko by je ukryła.
+  backoffLimit: 0
+  activeDeadlineSeconds: 180
+  template:
+    metadata:
+      labels:
+        {{- include "app.labels" . | nindent 8 }}
+        app.kubernetes.io/component: smoke-test
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: smoke-test
+          image: {{ .Values.smokeTest.image }}
+          env:
+            - name: WEB
+              value: {{ $web | quote }}
+          command:
+            - sh
+            - -c
+            - |
+              set -u
+              failed=0
+              # expect STATUS PATH [TEXT] — kod odpowiedzi (i fragment treści) przez web, jak z tunelu.
+              expect() {
+                status="$1"; path="$2"; text="${3:-}"
+                for attempt in 1 2 3 4 5 6; do
+                  got="$(curl -s -o /tmp/body -w '%{http_code}' "$WEB$path")"
+                  if [ "$got" = "$status" ] && { [ -z "$text" ] || grep -q "$text" /tmp/body; }; then
+                    echo "ok    $status $path"
+                    return 0
+                  fi
+                  sleep 5
+                done
+                echo "FAIL  $path: expected $status${text:+ with \"$text\"}, got $got"
+                head -c 300 /tmp/body; echo
+                failed=1
+              }
+              expect 200 /healthz                          # strona (nginx) żyje
+              expect 200 /api/health '"ok"'                # serwer odpowiada (i ma bazę — bez niej nie wstaje)
+              exit "$failed"
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { memory: 32Mi }
+          securityContext:
+            # Obraz podaje użytkownika nazwą (curl_user), a runAsNonRoot umie sprawdzić tylko
+            # numer — więc numer, wzięty z obrazu.
+            runAsUser: 100
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+{{- end }}

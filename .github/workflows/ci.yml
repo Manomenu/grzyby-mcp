@@ -1,0 +1,197 @@
+name: ci
+
+# Pull requests prove the change is sound; pushes to master additionally publish the
+# images. workflow_dispatch exists so a build can be re-run by hand without inventing an
+# empty commit.
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch makes the older run irrelevant, so stop paying for it.
+# Master is the exception: those runs publish images and must be allowed to finish.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+# The floor for every job. The one job that needs more asks for more, where it needs it.
+permissions:
+  contents: read
+
+env:
+  # The same interpreter the runtime image ships (and .python-version pins locally), so the
+  # tests run on what production runs.
+  UV_PYTHON: "3.14"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # The tests run against a real PostgreSQL, the same one `just db up` starts locally,
+    # on the same port, so the tests need no CI-specific settings.
+    services:
+      postgres:
+        image: docker.io/library/postgres:17.11
+        env:
+          POSTGRES_USER: grzyby
+          POSTGRES_PASSWORD: grzyby
+          POSTGRES_DB: grzyby
+        ports:
+          - 5443:5432
+        options: >-
+          --health-cmd "pg_isready -U grzyby"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # gitleaks (in check.sh) scans the whole history: a secret removed later is still published.
+          fetch-depth: 0
+
+      # Pinned like every tool here; the same version the platform repo uses.
+      - name: Install gitleaks
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz" |
+            tar -xz -C "$HOME/.local/bin" gitleaks
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      # The pinned pnpm version lives in the web project's package.json; there is no
+      # package.json at the repo root for the action to find on its own.
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: grzyby_web/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: grzyby_web/pnpm-lock.yaml
+
+      # The script skips the chart check when helm is absent, so CI has to provide it —
+      # otherwise the one place that should always run it would quietly not.
+      - uses: azure/setup-helm@v4
+
+      # Deliberately the same script the repo runs locally. CI that runs something else is
+      # CI that can disagree with your machine, and then neither of you is trustworthy.
+      - run: ./scripts/.internal/check.sh
+
+  # The whole app in a real browser (grzyby_web/src/**/*.e2e.ts). Same script as `just e2e`;
+  # here PostgreSQL is a service.
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: docker.io/library/postgres:17.11
+        env:
+          POSTGRES_USER: grzyby
+          POSTGRES_PASSWORD: grzyby
+          POSTGRES_DB: grzyby
+        ports:
+          - 5443:5432
+        options: >-
+          --health-cmd "pg_isready -U grzyby"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: grzyby_web/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: grzyby_web/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+        working-directory: grzyby_web
+
+      # The browser and the system libraries it needs, at the version @playwright/test pins.
+      - run: pnpm exec playwright install --with-deps chromium
+        working-directory: grzyby_web
+
+      - run: ./scripts/.internal/e2e.sh
+
+      # Screenshots, traces and the HTML report of a failed run, to see what the browser saw.
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: .artifacts/e2e/
+          retention-days: 14
+
+  build:
+    # Nothing is built, let alone published, until the suite is green.
+    needs: [test, e2e]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # pushing to ghcr.io
+    strategy:
+      # One image failing should not hide the state of the other.
+      fail-fast: false
+      matrix:
+        include:
+          - image: server
+            dockerfile: grzyby_server/Dockerfile
+          - image: web
+            dockerfile: grzyby_web/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+
+      # ghcr.io refuses an uppercase path, and this repository's owner has one.
+      - id: repo
+        run: echo "lower=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          # Minted for this run and expires with it — no token of ours to store or rotate.
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ steps.repo.outputs.lower }}/${{ matrix.image }}
+          # One immutable tag per commit, and no `latest`: a tag has to name exactly one
+          # build, or a deploy stops being reproducible.
+          tags: type=sha,format=short,prefix=sha-
+
+      - uses: docker/build-push-action@v6
+        with:
+          # The solution root, because the only lockfile (uv.lock) and the uv workspace
+          # manifest live up here.
+          context: .
+          file: ${{ matrix.dockerfile }}
+          # A pull request proves the image builds. Only master publishes it.
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          # Carries org.opencontainers.image.source, which is what makes GitHub attach the
+          # package to this repository instead of leaving it orphaned.
+          labels: ${{ steps.meta.outputs.labels }}
+          # Layer cache, kept apart per image so the two do not evict each other.
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+          # The cluster is a single amd64 node, so a second architecture would double the
+          # build for something nothing pulls.
+          platforms: linux/amd64
+          # Keeps the package a plain image rather than an index carrying an extra
+          # "unknown/unknown" entry that only confuses the packages page.
+          provenance: false

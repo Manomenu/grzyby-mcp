@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "app.name" . }}-server
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: server
+spec:
+  replicas: {{ .Values.server.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: server
+  template:
+    metadata:
+      labels:
+        {{- include "app.labels" . | nindent 8 }}
+        app.kubernetes.io/component: server
+    spec:
+      {{- with .Values.image.pullSecret }}
+      imagePullSecrets:
+        - name: {{ . }}
+      {{- end }}
+      containers:
+        - name: server
+          image: {{ include "app.image" (dict "Values" .Values "component" "server") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.server.port }}
+          env:
+            # Port z values, a nie z .env.base — jedno źródło prawdy dla sondy i procesu.
+            - name: PORT
+              value: {{ .Values.server.port | quote }}
+          {{- with .Values.server.databaseSecret }}
+          envFrom:
+            - secretRef:
+                name: {{ . }}
+          {{- end }}
+          # /health nie dotyka niczego poza procesem, więc nadaje się na sondę.
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.server.port }}
+            initialDelaySeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.server.port }}
+            initialDelaySeconds: 15
+          resources:
+            {{- toYaml .Values.server.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "app.name" . }}-server
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+spec:
+  # ClusterIP: widoczne tylko wewnątrz klastra. Z zewnątrz i tak wchodzi się przez web,
+  # który proxuje /api — tak samo jak w compose.
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: server
+  ports:
+    - port: {{ .Values.server.port }}
+      targetPort: {{ .Values.server.port }}

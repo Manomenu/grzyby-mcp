@@ -1,0 +1,53 @@
+line-length = 140
+target-version = "py312"
+
+[lint]
+# Wider than ruff's default (E4, E7, E9, F): the defaults catch syntax slips, these catch
+# the bugs and the drift. Each family earns its place; add one here rather than sprinkling
+# `# noqa` over the code.
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # import order
+    "N",        # naming
+    "UP",       # pyupgrade — modern syntax for the target version
+    "B",        # bugbear — likely bugs and design smells
+    "A",        # shadowing builtins
+    "C4",       # comprehensions
+    "DTZ",      # naive datetimes — every timestamp carries a timezone
+    "T20",      # stray print()
+    "PT",       # pytest style
+    "RET",      # return statements
+    "SIM",      # simplifications
+    "PTH",      # pathlib over os.path
+    "ERA",      # commented-out code
+    "PL",       # pylint subset
+    "RUF",      # ruff's own
+    "ANN",      # annotations — pyright strict needs them anyway
+    "S",        # bandit — security
+    "BLE",      # blind `except Exception`
+    "FBT",      # boolean positional traps
+    "TRY",      # exception handling
+]
+ignore = [
+    "PLR2004",  # magic values in comparisons — noisy in domain code full of thresholds
+    "TRY003",   # long messages in exceptions are how the API explains a 422
+]
+
+# Characters the domain uses on purpose (e.g. the en dash or × in Polish documents) go here,
+# not into `# noqa` comments.
+allowed-confusables = []
+
+[lint.per-file-ignores]
+# assert is how pytest tests; fixtures and test functions need no annotations to be read.
+"**/tests/**" = ["S101", "ANN", "PLR2004", "FBT"]
+
+[lint.flake8-bugbear]
+# FastAPI's dependency-injection idiom puts a call in the default, on purpose.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path", "fastapi.Body", "fastapi.File", "fastapi.Form"]
+
+[format]
+docstring-code-format = true
+
+[lint.isort]
+known-first-party = ["grzyby_server"]
