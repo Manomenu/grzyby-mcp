@@ -1,0 +1,6 @@
+{
+    // Only points at the two projects, so the editor knows which settings a file gets:
+    // the browser app (tsconfig.app.json) or code that runs in Node (tsconfig.node.json).
+    "files": [],
+    "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]
+}

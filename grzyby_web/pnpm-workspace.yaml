@@ -1,0 +1,10 @@
+# pnpm 11 reads settings from here, not from package.json. esbuild (via Vite) ships a
+# platform binary and needs its postinstall to run; approving it keeps installs
+# non-interactive.
+allowBuilds:
+  esbuild: true
+  # Comes with eslint-plugin-boundaries; its prebuilt binary arrives as an optional package,
+  # so its postinstall (a fallback build) is not needed.
+  unrs-resolver: false
+onlyBuiltDependencies:
+  - esbuild

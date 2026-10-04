@@ -1,0 +1,47 @@
+server {
+    listen 8080;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Liveness for the container itself. Deliberately independent of the API: the page
+    # is still servable when the server behind it is down.
+    location = /healthz {
+        access_log off;
+        add_header content-type text/plain always;
+        return 200 "ok\n";
+    }
+
+    # The browser only ever sees one origin, exactly as it does behind the vite proxy in
+    # development — which is why the API's CORS list never has to learn about deployments.
+    #
+    # The upstream goes through a variable so nginx looks the name up again (every 10 s)
+    # instead of once at start: a recreated server container gets a new address, and a
+    # cached one answers 502. The resolvers are the container's own, from /etc/resolv.conf
+    # (NGINX_ENTRYPOINT_LOCAL_RESOLVERS in the Dockerfile). nginx's resolver knows no search
+    # domains, so on the cluster API_UPSTREAM is the full service name.
+    location /api/ {
+        resolver ${NGINX_LOCAL_RESOLVERS} valid=10s;
+        set $api_upstream ${API_UPSTREAM};
+        # Strips the /api prefix; proxy_pass with a variable and no path sends this URI on.
+        rewrite ^/api/(.*)$ /$1 break;
+        proxy_pass $api_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Vite emits content-hashed filenames, so these can never go stale.
+    location /assets/ {
+        add_header cache-control "public, max-age=31536000, immutable";
+    }
+
+    # Single page app. index.html must not be cached or a browser keeps asking for the
+    # previous release's asset names after a deploy.
+    location / {
+        try_files $uri $uri/ /index.html;
+        add_header cache-control "no-cache";
+    }
+}

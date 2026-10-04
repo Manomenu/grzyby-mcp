@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Before a commit leaves this laptop: no secret in what is being committed. `just check` and
+# CI run gitleaks too, but a secret found after the push is already on GitHub (and in every
+# clone). Enabled by `just sync` (git config core.hooksPath .githooks).
+set -euo pipefail
+
+command -v gitleaks >/dev/null || {
+    echo "pre-commit: gitleaks not found — install it (https://github.com/gitleaks/gitleaks); commit refused" >&2
+    exit 1
+}
+gitleaks git --staged --no-banner --redact --log-level warn || {
+    echo "pre-commit: possible secret in the staged changes — commit refused (see above)" >&2
+    exit 1
+}

@@ -1,0 +1,60 @@
+# The local stand-in for the cluster. Same images, wired the way the ingress wires them: the
+# browser only ever talks to web, and /api is proxied on to server.
+#
+#   just up   ->  http://localhost:8091
+#
+# This is a verification harness, not the deployment: the whole stack runs on a laptop
+# without the cluster. The cluster gets the same images from the registry (deploy/chart).
+# A service the app gains (a converter, a cache) is added here AND in the chart, together.
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: grzyby_server/Dockerfile
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # After env_file on purpose: a host address from .env must not leak into the container.
+      DATABASE_URL: postgresql://grzyby:grzyby@postgres:5432/grzyby
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:6210/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # A volume of its own, apart from the one `just db up` uses, so the stack and the
+  # development server never share data. No published port: only the server reaches it.
+  postgres:
+    image: docker.io/library/postgres:17.11
+    environment:
+      POSTGRES_USER: grzyby
+      POSTGRES_PASSWORD: grzyby
+      POSTGRES_DB: grzyby
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "grzyby", "-d", "grzyby"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: grzyby_web/Dockerfile
+    environment:
+      API_UPSTREAM: http://server:6210
+    ports:
+      - "8091:8080"
+    depends_on:
+      server:
+        condition: service_healthy
+
+volumes:
+  postgres:

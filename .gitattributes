@@ -1,0 +1,18 @@
+# Line endings: LF in the repo and in every checkout, whatever the OS (matches .editorconfig).
+* text=auto eol=lf
+
+# Binary: never diffed as text, never normalised.
+*.docx binary
+*.xlsx binary
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.woff2 binary
+
+# Generated: collapsed in GitHub diffs and left out of language stats. Never edited by hand —
+# lockfiles come from uv/pnpm, the API types from scripts/.internal/api-types.sh.
+uv.lock linguist-generated=true
+**/pnpm-lock.yaml linguist-generated=true
+**/src/api/openapi.d.ts linguist-generated=true

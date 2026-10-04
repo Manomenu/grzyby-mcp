@@ -1,0 +1,11 @@
+apiVersion: v2
+name: grzyby
+description: API plus a static frontend (nginx) in front of it
+type: application
+
+# The chart's own version: changes when the SHAPE of the deployment changes (a new port,
+# a new variable, a volume) — not when the application code does.
+version: 0.1.0
+
+# Informational only. What actually runs is decided by the image tag the platform repo sets.
+appVersion: "0.1.0"

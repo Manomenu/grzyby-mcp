@@ -1,0 +1,26 @@
+{
+    "venvPath": ".",
+    "venv": ".venv",
+    "pythonVersion": "3.12",
+    "typeCheckingMode": "strict",
+    "include": ["grzyby_server", "scripts/.internal"],
+    "executionEnvironments": [
+        { "root": "grzyby_server" },
+        { "root": "scripts/.internal", "extraPaths": ["grzyby_server"] }
+    ],
+    "exclude": [
+        ".git",
+        ".artifacts",
+        "**/.venv",
+        "**/node_modules",
+        "**/__pycache__",
+        "**/.pytest_cache",
+        "**/.ruff_cache",
+        "grzyby_web"
+    ],
+    "reportMissingTypeStubs": "error",
+    "reportUnnecessaryTypeIgnoreComment": "error",
+    "reportImplicitOverride": "error",
+    "reportPropertyTypeMismatch": "error",
+    "reportUninitializedInstanceVariable": "error"
+}

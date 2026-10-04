@@ -1,0 +1,37 @@
+# Defaults. The image tag is empty on purpose: the platform repo sets it, because it decides
+# what runs. A tag hard-coded here would make a code commit a deployment at the same time.
+
+image:
+  registry: ghcr.io/manomenu/grzyby-mcp
+  tag: "" # e.g. sha-a1b2c3d — set by the Argo Application
+  pullPolicy: IfNotPresent
+  # A docker-registry Secret in the release namespace, for a private registry. The platform
+  # repo creates it (scripts/projects/…/setup.sh); empty = pull without logging in.
+  pullSecret: ""
+
+server:
+  replicas: 1
+  port: 6210
+  # A Secret with DATABASE_URL in the release namespace, created by the platform repo. Without
+  # a database the server deliberately does not start.
+  databaseSecret: ""
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 384Mi }
+
+web:
+  replicas: 1
+  port: 8080
+  resources:
+    requests: { cpu: 10m, memory: 32Mi }
+    limits: { memory: 128Mi }
+
+# Checked after every deploy (templates/smoke-test.yaml): a Job Argo runs after each sync.
+smokeTest:
+  enabled: true
+  image: docker.io/curlimages/curl:8.22.0
+
+ingress:
+  enabled: true
+  className: traefik
+  host: grzyby.k8s.example.internal

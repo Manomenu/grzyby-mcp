@@ -1,0 +1,22 @@
+# The build context is the solution root for both images, so everything heavy and
+# everything machine-local has to be kept out of it.
+.git
+.github
+.claude
+.vscode
+.artifacts
+docs/
+deploy/
+
+**/.venv/
+**/node_modules/
+**/dist/
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/.ruff_cache/
+**/.import_linter_cache/
+
+# Secrets never enter a build context, let alone an image layer.
+**/.env
+.secrets/

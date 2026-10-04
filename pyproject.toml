@@ -1,0 +1,65 @@
+# uv workspace root. It exists so the whole solution resolves into ONE .venv at the repo
+# root: a single interpreter that knows every package, which is what lets VS Code (and
+# pyright) work from a plain folder instead of a multi-root workspace file.
+[project]
+name = "grzyby"
+version = "0.1.0"
+description = "grzyby"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+    "grzyby-server",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["grzyby_server"]
+
+[tool.uv.sources]
+grzyby-server = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "httpx2>=2.13",       # fastapi.testclient — starlette moved off httpx
+    "pyright>=1.1.400",   # strict type check, same config the editor reads (pyrightconfig.json)
+    "import-linter>=2.1", # the server's import contracts below — part of `just check`
+]
+
+[tool.pytest.ini_options]
+addopts = ["--strict-markers", "--strict-config"]
+xfail_strict = true
+
+# Import contracts: which part of the server may import which. A layer may import the layers
+# below it, never the ones above; "a | b" are siblings that must not import each other.
+#
+# EVERY top-level module and package of grzyby_server has a place in the first contract —
+# tests/test_contracts.py fails the gate when one is missing. A new feature therefore lands
+# here in the same change (AGENTS.md, "Import contracts"), e.g. for a feature `notes` that
+# stores in the database and a feature `export` built on top of it:
+#
+#     "grzyby_server.app",
+#     "grzyby_server.export",
+#     "grzyby_server.notes",
+#     "grzyby_server.db",
+#     "grzyby_server.settings",
+#
+# plus, for a feature that is a package, its inner order:
+#
+#     [[tool.importlinter.contracts]]
+#     name = "Inside notes: HTTP > SQL > models"
+#     type = "layers"
+#     containers = ["grzyby_server.notes"]
+#     layers = ["api", "store", "model"]
+[tool.importlinter]
+root_packages = ["grzyby_server"]
+
+[[tool.importlinter.contracts]]
+name = "Server layers: features above the plumbing they use"
+type = "layers"
+layers = [
+    "grzyby_server.app",
+    "grzyby_server.db",
+    "grzyby_server.settings",
+]

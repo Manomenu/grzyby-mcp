@@ -1,0 +1,22 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run server (auto-reload)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": ["grzyby_server.app:app", "--reload", "--port", "6210"],
+            "cwd": "${workspaceFolder}/grzyby_server",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "justMyCode": true
+        },
+        {
+            "name": "web (vite dev)",
+            "type": "node-terminal",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/grzyby_web",
+            "command": "pnpm dev"
+        }
+    ]
+}
