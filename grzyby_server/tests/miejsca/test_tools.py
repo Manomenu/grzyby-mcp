@@ -43,6 +43,9 @@ def test_the_tool_answers_with_a_spot_and_the_way_there(client: TestClient) -> N
     spot = result["structuredContent"]["miejsca"][0]
     assert spot["trasa"] == trasa(spot["lat"], spot["lon"])
     assert "Bank Danych o Lasach" in result["structuredContent"]["zrodla"]
+    # The readable form for the chatbot and for clients without the map — not a JSON dump.
+    assert result["content"][0]["text"].startswith(f"**{spot['nazwa']}**")
+    assert spot["trasa"] in result["content"][0]["text"]
 
 
 def test_the_map_is_served_as_an_mcp_app(client: TestClient) -> None:

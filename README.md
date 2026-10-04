@@ -42,19 +42,28 @@ just secrets backup  # kopia lokalnych plików .env w Bitwardenie (restore na no
 
 ## Podłączenie do chatbota
 
-Serwer działa pod **`https://grzyby.gugnowski.com/mcp`** i wymaga klucza. Klucz jest w
-Bitwardenie (notatka `suwalski-platform/.secrets/grzyby.env`, wartość `MCP_KEY`); nigdy nie
-wklejaj go do repo ani do zgłoszeń.
+Serwer działa pod **`https://grzyby.gugnowski.com/mcp`** i wymaga klucza. Serwer przyjmuje go na
+dwa sposoby: nagłówkiem `Authorization: Bearer <MCP_KEY>` (zalecane) albo `?key=<MCP_KEY>` w
+adresie (tylko awaryjnie, dla klientów, które nie umieją wysłać nagłówka).
+
+Klucz jest w Bitwardenie (notatka `suwalski-platform/.secrets/grzyby.env`, wartość `MCP_KEY`);
+na laptopie właściciela także w `suwalski-platform/.secrets/grzyby.env`. Nigdy nie wklejaj go
+do repo, zgłoszeń ani rozmów.
 
 **Claude (claude.ai, aplikacja na komputer i telefon):**
 
-1. Ustawienia → **Konektory** (Connectors) → **Dodaj własny konektor** (Add custom connector).
-2. Nazwa: `Grzyby`, adres: `https://grzyby.gugnowski.com/mcp?key=<MCP_KEY>`.
-3. Zapisz; w nowej rozmowie włącz konektor (ikona narzędzi pod polem wiadomości) i zapytaj np.
+1. Ustawienia → **Konektory** (Connectors) → **„Dodaj własny konektor”** (Add custom connector).
+2. Nazwa: `grzyby`, URL: `https://grzyby.gugnowski.com/mcp` — **bez** `?key=`.
+3. Authentication: **„No sign-in”** (Claude wykrywa to sam).
+4. Request headers: nazwa `Authorization`, wartość `Bearer <MCP_KEY>` (Claude zapisuje wartość
+   nagłówka i już jej nie pokazuje).
+5. Zapisz; w nowej rozmowie włącz konektor (ikona narzędzi pod polem wiadomości) i zapytaj np.
    „Gdzie teraz na grzyby koło Suwałk?” — odpowiedź przyjdzie z mapką.
 
-Klucz w adresie jest celowo: konektor nie umie wysłać własnego nagłówka. Kto ma adres, ma dostęp
-— zmiana klucza (`scripts/projects/grzyby/setup.sh` w suwalski-platform) unieważnia stary.
+Klucz w nagłówku, a nie w adresie, bo wtedy nie trafia do adresu, logów ani historii.
+
+**Klient bez nagłówków** (np. jeśli konektor ChatGPT nie umie ich wysłać): adres
+`https://grzyby.gugnowski.com/mcp?key=<MCP_KEY>`. Kto ma ten adres, ma dostęp.
 
 **Claude Code** (klucz w nagłówku, nie w adresie):
 
@@ -67,5 +76,9 @@ claude mcp add --transport http grzyby https://grzyby.gugnowski.com/mcp --header
 ```sh
 claude mcp add --transport http grzyby-local http://localhost:6210/mcp
 ```
+
+**Zmiana klucza:** `scripts/projects/grzyby/setup.sh` w suwalski-platform (podaj nową wartość),
+potem restart serwera (`kubectl -n grzyby rollout restart deployment/grzyby-server`) i nowy
+nagłówek w każdym konektorze — stary klucz przestaje działać.
 
 Jak repo jest zorganizowane i co musi przynieść każda zmiana: [AGENTS.md](AGENTS.md).
