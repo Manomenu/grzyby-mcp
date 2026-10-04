@@ -1,5 +1,6 @@
 """The MCP endpoint as a chatbot sees it: JSON-RPC over HTTP at /mcp."""
 
+import hashlib
 from collections.abc import Iterator
 from typing import Any
 
@@ -8,7 +9,7 @@ from fastapi.testclient import TestClient
 
 from grzyby_server.app import mcp_http
 from grzyby_server.miejsca.model import trasa
-from grzyby_server.miejsca.tools import MAP_URI
+from grzyby_server.miejsca.tools import MAP_HTML, MAP_URI
 
 # Streamable HTTP: the client accepts both, the server answers with JSON (json_response=True).
 HEADERS = {"accept": "application/json, text/event-stream", "content-type": "application/json", "host": "localhost:6210"}
@@ -48,6 +49,11 @@ def test_the_tool_answers_with_a_spot_and_the_way_there(client: TestClient) -> N
     # The readable form for the chatbot and for clients without the map — not a JSON dump.
     assert result["content"][0]["text"].startswith(f"**{spot['nazwa']}**")
     assert spot["trasa"] in result["content"][0]["text"]
+
+
+def test_the_map_address_changes_with_its_content() -> None:
+    # Hosts cache widgets by URI; a changed mapa.html must not be served under the old address.
+    assert hashlib.sha256(MAP_HTML.encode()).hexdigest()[:12] in MAP_URI
 
 
 def test_the_map_is_served_as_an_mcp_app(client: TestClient) -> None:

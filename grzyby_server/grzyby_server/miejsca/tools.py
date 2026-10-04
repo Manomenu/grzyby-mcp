@@ -5,6 +5,7 @@ scoring arrives (TODO, stage 1). The stand is real: Nadleśnictwo Suwałki, from
 o Lasach sample.
 """
 
+import hashlib
 from pathlib import Path
 from typing import Annotated
 
@@ -14,7 +15,10 @@ from mcp_types import CallToolResult, TextContent
 
 from grzyby_server.miejsca.model import Miejsce, Odpowiedz, opis, trasa
 
-MAP_URI = "ui://grzyby/mapa.html"
+MAP_HTML = Path(__file__).with_name("mapa.html").read_text(encoding="utf-8")
+# The content's hash is part of the address: hosts cache a widget by its URI (Claude kept showing
+# a broken old version of mapa.html after it was fixed), so every change gets a new one.
+MAP_URI = f"ui://grzyby/mapa-{hashlib.sha256(MAP_HTML.encode()).hexdigest()[:12]}.html"
 SOURCES = "Drzewostany: Bank Danych o Lasach (bdl.lasy.gov.pl), stan na 2026, licencja CC BY 4.0."
 
 apps = Apps()
@@ -65,7 +69,7 @@ def _hello_world() -> Odpowiedz:
 
 apps.add_html_resource(
     MAP_URI,
-    (Path(__file__).with_name("mapa.html")).read_text(encoding="utf-8"),
+    MAP_HTML,
     title="Mapa miejsc na grzyby",
     # The widget loads Leaflet and raster tiles from these hosts; the host's sandbox blocks
     # everything else — including blob: workers, which is why the map is Leaflet (plain images)

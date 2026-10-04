@@ -81,4 +81,7 @@ claude mcp add --transport http grzyby-local http://localhost:6210/mcp
 potem restart serwera (`kubectl -n grzyby rollout restart deployment/grzyby-server`) i nowy
 nagłówek w każdym konektorze — stary klucz przestaje działać.
 
+Mapa w odpowiedzi (MCP Apps): jak działa, czego wymaga Claude i co sprawdzać, gdy jej nie
+widać — [docs/mcp-apps.md](docs/mcp-apps.md).
+
 Jak repo jest zorganizowane i co musi przynieść każda zmiana: [AGENTS.md](AGENTS.md).
