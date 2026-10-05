@@ -6,13 +6,14 @@ const CLAUDE_CODE = `claude mcp add --transport http grzyby ${MCP_URL}`;
 
 function Copyable({ value, label }: { value: string; label: string }) {
     return (
-        <Group gap="xs" wrap="nowrap" align="center">
-            <Code block style={{ flex: 1, overflowX: "auto" }}>
+        // On a phone the button goes under the address instead of past the edge.
+        <Group gap="xs" align="center">
+            <Code block bg="#efe7d3" style={{ flex: "1 1 14rem", overflowX: "auto" }}>
                 {value}
             </Code>
             <CopyButton value={value}>
                 {({ copied, copy }) => (
-                    <Button size="xs" variant="light" color={copied ? "teal" : "indigo"} onClick={copy} aria-label={label}>
+                    <Button size="xs" variant="light" color={copied ? "teal" : "moss"} onClick={copy} aria-label={label}>
                         {copied ? "Skopiowano" : "Kopiuj"}
                     </Button>
                 )}

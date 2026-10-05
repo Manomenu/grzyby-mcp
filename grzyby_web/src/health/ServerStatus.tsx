@@ -1,31 +1,28 @@
-import { Badge } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { Alert, Group, Text } from "@mantine/core";
 
-import { fetchHealth } from "./api";
-import { describe, statusOf, type ServerStatus as Status } from "./status";
+import { describe, type ServerStatus as Status } from "./status";
 
-/** Whether the API answers — a badge. The template's only feature; delete it when it is in the way. */
-export function ServerStatus() {
-    const [status, setStatus] = useState<Status>({ kind: "checking" });
-
-    useEffect(() => {
-        // StrictMode runs effects twice in development: abort the first request, ignore its result.
-        const controller = new AbortController();
-        fetchHealth(controller.signal)
-            .then((health) => {
-                setStatus(statusOf(health));
-            })
-            .catch((e: unknown) => {
-                if (!controller.signal.aborted) setStatus(statusOf(e instanceof Error ? e : new Error(String(e))));
-            });
-        return () => {
-            controller.abort();
-        };
-    }, []);
-
+/** A quiet line at the foot of the page: a dot and a word. */
+export function ServerStatus({ status }: { status: Status }) {
+    const colour = status.kind === "up" ? "moss.6" : status.kind === "down" ? "red.7" : "gray.5";
     return (
-        <Badge variant="light" size="lg" color={status.kind === "down" ? "red" : "indigo"}>
-            serwer: {describe(status)}
-        </Badge>
+        <Group gap={6} wrap="nowrap">
+            <Text c={colour} size="xs" aria-hidden>
+                ●
+            </Text>
+            <Text size="xs" c="dimmed">
+                serwer: {describe(status)}
+            </Text>
+        </Group>
+    );
+}
+
+/** When the server is down, the visitor should know before trying to connect: a banner on top. */
+export function ServerDownAlert({ status }: { status: Status }) {
+    if (status.kind !== "down") return null;
+    return (
+        <Alert color="red" variant="filled" title="Serwer teraz nie odpowiada" radius="lg">
+            Odpowiedzi z mapą mogą chwilowo nie działać — spróbuj za kilka minut. Konektor możesz dodać już teraz.
+        </Alert>
     );
 }
