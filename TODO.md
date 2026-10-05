@@ -190,9 +190,10 @@ Formalności i dane:
       `docs/dev/rozpoznanie-danych.md`, „Licencje i przypisanie”. Zostaje mail do BDL (wyżej).
 - [ ] **Open-Meteo** — darmowe tylko niekomercyjnie, z przypisaniem (CC BY 4.0); sprawdzić
       aktualne warunki i limit zapytań przed większym ruchem.
-- [ ] **Kafelki OSM** — zasady OpenStreetMap zakazują dużego ruchu, a widżet pobiera kafelki
-      z przeglądarki każdego użytkownika. Na start zostaje OSM; przy pierwszych oznakach ruchu
-      inne źródło (np. MapTiler, Stadia — darmowe plany z kluczem) i nowy host w CSP widżetu.
+- [x] **Kafelki mapy** (5.10.2026) — CARTO Voyager z naszym kluczem zamiast kafelków OSM, które
+      blokowały mapę w Codexie na Windows (brak nagłówka Referer) i nie pozwalają na duży ruch.
+      Darmowo do 5 mln kafli/miesiąc, przy zarabianiu 1 mln (`docs/monetyzacja.md`). Gdyby
+      grzybiarzom brakowało ścieżek leśnych — styl outdoorowy (MapTiler, Thunderforest) jako przełącznik.
 - [ ] **Prywatność** — nie zbieramy danych osobowych (w logach nginx adresy IP serwerów Anthropic
       i OpenAI, w bazie nazwy miejscowości); krótka notka na stronie.
 - [ ] **MCP Apps w ChatGPT** — czy pokazuje mapkę (bez klucza odpada pytanie o nagłówek).

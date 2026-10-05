@@ -15,6 +15,7 @@ from grzyby_server.miejsca import geocoding, tools
 from grzyby_server.miejsca.model import Answer, Grzyb, Miejsce, Prognoza
 from grzyby_server.miejsca.search import POLAND, Query
 from grzyby_server.miejsca.tools import MAP_HTML, MAP_URI
+from grzyby_server.settings import settings
 from tests.fake_web import FakeWeb, forest_services, open_meteo, stand
 
 # Streamable HTTP: the client accepts both, the server answers with JSON (json_response=True).
@@ -106,6 +107,12 @@ def test_the_map_is_served_as_an_mcp_app(client: TestClient) -> None:
 
     assert contents["mimeType"] == "text/html;profile=mcp-app"
     assert "ontoolresult" in contents["text"]
+
+
+def test_the_tiles_key_is_put_into_the_map() -> None:
+    # The placeholder never reaches a browser: the key from the settings (empty here) replaces it.
+    assert "__CARTO_KEY__" not in MAP_HTML
+    assert f'png?key={settings.carto_key}"' in MAP_HTML
 
 
 def test_an_unknown_host_is_refused(client: TestClient) -> None:

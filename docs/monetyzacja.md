@@ -8,8 +8,9 @@ z TODO: **hobby, nie biznes** — koszt ≈ domena. Zero zdzierstwa.
 - Domena: kilkadziesiąt zł rocznie (sprawdzić cenę odnowienia).
 - Serwer: dziś własny homelab — prąd i czas, nie faktura.
 - **Ukryte koszty, które pojawią się przy ruchu:**
-  - kafelki mapy — zasady OpenStreetMap wykluczają duży ruch, trzeba własnego źródła
-    (płatny dostawca albo własny serwer kafelków);
+  - kafelki mapy — CARTO: za darmo do 5 mln kafli miesięcznie niekomercyjnie, ale przy
+    zarabianiu tylko do 1 mln (ok. 20 tys. obejrzeń mapy), powyżej płatny plan od 500 USD/mies.
+    — wtedy raczej własny serwer kafelków;
   - Nominatim — to samo, przy ruchu własna instancja albo płatne geokodowanie;
   - **Open-Meteo jest darmowe tylko niekomercyjnie.** Gdy usługa zaczyna zarabiać, to już
     użycie komercyjne → ich płatny plan. Czyli: monetyzacja sama w sobie generuje koszt.

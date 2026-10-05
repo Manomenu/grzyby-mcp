@@ -105,10 +105,10 @@ Co każde źródło wymaga obok swoich danych i gdzie to spełniamy (przypisanie
 | Open-Meteo (pogoda) | CC BY 4.0, darmowe niekomercyjnie (< 10 tys. zapytań/dzień) | link do open-meteo.com przy danych, link do licencji, informacja o zmianach | w przypisaniu; płatny plan przy zarabianiu (`docs/monetyzacja.md`) |
 | GDOŚ (parki, rezerwaty) | usługa WFS: opłaty „brak”, ograniczenia dostępu „brak” | nic poza dobrą praktyką podania źródła | w przypisaniu, z adresem usługi |
 | Nominatim / OpenStreetMap (położenie miejscowości) | ODbL; wytyczne OSMF o geokodowaniu | „© OpenStreetMap contributors” z linkiem do openstreetmap.org/copyright; pojedyncze wyniki wolno trzymać (nieistotne wyciągi) — share-alike tylko przy zbieraniu znacznej części bazy | w przypisaniu; cache trzyma tylko pytane miejscowości |
-| Kafelki OpenStreetMap (podkład mapy) | zasady tile.openstreetmap.org | atrybucja z linkiem; zakaz dużego ruchu bez zgody | atrybucja w rogu mapy; inne źródło kafelków przy ruchu — TODO |
+| Kafelki CARTO (podkład mapy, dane OpenStreetMap; od 5.10.2026 zamiast kafelków OSM, które blokują Codex na Windows i duży ruch) | warunki CARTO Basemaps: własny klucz, za darmo do 5 mln kafli/miesiąc niekomercyjnie, 1 mln komercyjnie | widoczne „© OpenStreetMap” i „© CARTO” z linkami | atrybucja w rogu mapy; klucz w Application platformy (`server.cartoKey`) |
 | Leaflet (BSD-2), `@modelcontextprotocol/ext-apps` (MIT) | licencje open source | zachowanie informacji o licencji | ładowane z CDN z nagłówkami licencji; Leaflet sam pokazuje się w rogu mapy |
 
 Źródła: [warunki Open-Meteo](https://open-meteo.com/en/terms), [licencja Open-Meteo](https://open-meteo.com/en/licence),
 [wytyczne OSMF o geokodowaniu](https://osmfoundation.org/wiki/Licence/Community_Guidelines/Geocoding_-_Guideline),
-[FAQ licencji OSM](https://osmfoundation.org/wiki/Licence_and_Legal_FAQ), [zasady kafelków OSM](https://operations.osmfoundation.org/policies/tiles/),
+[FAQ licencji OSM](https://osmfoundation.org/wiki/Licence_and_Legal_FAQ), [zasady kafelków OSM](https://operations.osmfoundation.org/policies/tiles/), [warunki CARTO Basemaps](https://carto.com/legal/basemap-terms/),
 opis usługi WFS GDOŚ (`sdi.gdos.gov.pl/wfs?request=GetCapabilities`: Fees, AccessConstraints).
