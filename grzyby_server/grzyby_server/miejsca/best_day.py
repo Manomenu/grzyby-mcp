@@ -14,7 +14,7 @@ from grzyby_server.fetch import GetJson
 from grzyby_server.lasy import store
 from grzyby_server.miejsca import grzyby, scoring
 from grzyby_server.miejsca.model import DzienPrognozy, Prognoza, day_text
-from grzyby_server.miejsca.search import MAX_DAY, UNSURE_FROM, Query, attribution, prepare, score_day
+from grzyby_server.miejsca.search import MAX_DAY, REFUSED, UNSURE_FROM, Query, attribution, prepare, score_day
 from grzyby_server.pogoda.model import Warunki
 
 TOP = 10  # stands in an area's score for a day
@@ -56,8 +56,13 @@ def best_day(conn: Connection, get_json: GetJson, query: Query, now: datetime) -
     best = max(dni, key=lambda d: d.ocena, default=None)
 
     uwagi: list[str] = []
-    if not area.candidates:
+    if area.ensured.refused is not None:
+        # The area is not known yet, so no claim about its forests — the refusal says why.
+        uwagi.append(REFUSED[area.ensured.refused])
+    elif not area.candidates:
         uwagi.append(f"W promieniu {promien_km} km nie ma lasów państwowych, do których wolno wejść.")
+    if area.ensured.failed:
+        uwagi.append("Części okolicy nie udało się teraz pobrać z Banku Danych o Lasach — ocena może być niepełna; spróbuj za chwilę.")
     if not area.weather_ok:
         uwagi.append("Nie udało się teraz pobrać pogody (Open-Meteo) — dni różnią się tylko sezonem; spróbuj za chwilę.")
     uwagi.append(f"Od {UNSURE_FROM}. dnia naprzód to prognoza pogody — im dalej, tym mniej pewna.")

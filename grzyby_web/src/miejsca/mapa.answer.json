@@ -110,7 +110,7 @@
         ]
     },
     "uwagi": [],
-    "zrodla": "Drzewostany: Bank Danych o Lasach (bdl.lasy.gov.pl), stan na 2026 r., pobrane 12.09.2026, licencja CC BY 4.0; na tej podstawie nasze wyliczenia; parki narodowe i rezerwaty: GDOŚ; zakazy wstępu: BDL, sprawdzone 12.09.2026 12:00; pogoda: Open-Meteo (open-meteo.com), licencja CC BY 4.0; położenie miejscowości: © autorzy OpenStreetMap (Nominatim).",
+    "zrodla": "Drzewostany: Bank Danych o Lasach (bdl.lasy.gov.pl), stan na 2026 r., pobrane 12.09.2026; zakazy wstępu: Bank Danych o Lasach, sprawdzone 12.09.2026 12:00; oba na licencji CC BY 4.0 (creativecommons.org/licenses/by/4.0), przetworzone przez nas na ocenę; parki narodowe i rezerwaty: Generalna Dyrekcja Ochrony Środowiska (sdi.gdos.gov.pl); pogoda: Open-Meteo (open-meteo.com), licencja CC BY 4.0 (creativecommons.org/licenses/by/4.0), przetworzona przez nas na ocenę; położenie miejscowości: © autorzy OpenStreetMap (openstreetmap.org/copyright), wyszukiwarka Nominatim.",
     "mapa": {
         "lat": 54.1,
         "lon": 22.93,

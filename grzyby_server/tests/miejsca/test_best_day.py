@@ -1,11 +1,13 @@
 from datetime import UTC, date, datetime
 
+import pytest
 from psycopg import Connection
 
+from grzyby_server.lasy import tiles
 from grzyby_server.miejsca import geocoding
 from grzyby_server.miejsca.best_day import best_day
 from grzyby_server.miejsca.model import Grzyb, forecast_text
-from grzyby_server.miejsca.search import Query
+from grzyby_server.miejsca.search import REFUSED, Query
 from tests.fake_web import FakeWeb, forest_services, open_meteo, stand
 
 NOW = datetime(2026, 10, 4, 10, 0, tzinfo=UTC)
@@ -40,3 +42,12 @@ def test_an_unknown_place_says_so(conn: Connection) -> None:
 
     assert forecast.dni == []
     assert forecast.uwagi == ["Nie znalazłem w Polsce miejscowości „Xyzzy”."]
+
+
+def test_a_refused_area_says_so_instead_of_claiming_no_forests(conn: Connection, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(tiles, "DAILY_LIMIT", 0)
+
+    forecast = best_day(conn, web(rain_days_ago=5), Query("Suwałki", [Grzyb.BOROWIK], 15), NOW)
+
+    assert forecast.uwagi[0] == REFUSED[tiles.Refusal.DAILY_LIMIT]
+    assert not any("nie ma lasów" in uwaga for uwaga in forecast.uwagi)

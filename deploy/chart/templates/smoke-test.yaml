@@ -73,7 +73,11 @@ spec:
                 -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' \
                 -H "authorization: Bearer ${MCP_KEY:-}" \
                 -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}')"
-              if [ "$got" = 200 ] && grep -q gdzie_na_grzyby /tmp/body; then echo "ok    200 /mcp tools/list"; else echo "FAIL  /mcp tools/list: got $got"; head -c 300 /tmp/body; echo; failed=1; fi
+              if [ "$got" = 200 ] && grep -q gdzie_na_grzyby /tmp/body && grep -q kiedy_na_grzyby /tmp/body; then
+                echo "ok    200 /mcp tools/list"
+              else
+                echo "FAIL  /mcp tools/list: got $got"; head -c 300 /tmp/body; echo; failed=1
+              fi
               exit "$failed"
           resources:
             requests: { cpu: 10m, memory: 16Mi }

@@ -93,3 +93,22 @@ co do zasady zakazane.
 2. WPN: czy są miejsca, gdzie wolno zbierać grzyby — zapytać park.
 3. Licencja / przypisanie danych GDOŚ.
 4. ~~Open-Meteo vs zbieranie IMGW~~ — rozstrzygnięte: tylko Open-Meteo (punkt 3).
+
+## Licencje i przypisanie — sprawdzone 5.10.2026
+
+Co każde źródło wymaga obok swoich danych i gdzie to spełniamy (przypisanie: `search.attribution`
+— w odpowiedzi obu narzędzi i pod mapą; atrybucja kafelków: w rogu mapy).
+
+| Źródło | Licencja / warunki | Wymaga | U nas |
+| --- | --- | --- | --- |
+| Bank Danych o Lasach (drzewostany, zakazy wstępu) | CC BY 4.0 + regulamin portalu | źródło, czas wytworzenia i pozyskania, link do licencji, informacja o przetworzeniu; **mail do DGLP/BDL o przetwarzaniu** | wszystko w przypisaniu; mail — TODO, właściciel |
+| Open-Meteo (pogoda) | CC BY 4.0, darmowe niekomercyjnie (< 10 tys. zapytań/dzień) | link do open-meteo.com przy danych, link do licencji, informacja o zmianach | w przypisaniu; płatny plan przy zarabianiu (`docs/monetyzacja.md`) |
+| GDOŚ (parki, rezerwaty) | usługa WFS: opłaty „brak”, ograniczenia dostępu „brak” | nic poza dobrą praktyką podania źródła | w przypisaniu, z adresem usługi |
+| Nominatim / OpenStreetMap (położenie miejscowości) | ODbL; wytyczne OSMF o geokodowaniu | „© OpenStreetMap contributors” z linkiem do openstreetmap.org/copyright; pojedyncze wyniki wolno trzymać (nieistotne wyciągi) — share-alike tylko przy zbieraniu znacznej części bazy | w przypisaniu; cache trzyma tylko pytane miejscowości |
+| Kafelki OpenStreetMap (podkład mapy) | zasady tile.openstreetmap.org | atrybucja z linkiem; zakaz dużego ruchu bez zgody | atrybucja w rogu mapy; inne źródło kafelków przy ruchu — TODO |
+| Leaflet (BSD-2), `@modelcontextprotocol/ext-apps` (MIT) | licencje open source | zachowanie informacji o licencji | ładowane z CDN z nagłówkami licencji; Leaflet sam pokazuje się w rogu mapy |
+
+Źródła: [warunki Open-Meteo](https://open-meteo.com/en/terms), [licencja Open-Meteo](https://open-meteo.com/en/licence),
+[wytyczne OSMF o geokodowaniu](https://osmfoundation.org/wiki/Licence/Community_Guidelines/Geocoding_-_Guideline),
+[FAQ licencji OSM](https://osmfoundation.org/wiki/Licence_and_Legal_FAQ), [zasady kafelków OSM](https://operations.osmfoundation.org/policies/tiles/),
+opis usługi WFS GDOŚ (`sdi.gdos.gov.pl/wfs?request=GetCapabilities`: Fees, AccessConstraints).

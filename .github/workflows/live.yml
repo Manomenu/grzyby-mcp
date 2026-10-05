@@ -1,0 +1,50 @@
+name: live
+
+# The real outside services, once a day: BDL, GDOŚ, Open-Meteo and Nominatim can change their
+# answers or go away without any commit here, and every other test answers from a fake. A red
+# run is the warning before users notice. Also by hand (workflow_dispatch).
+on:
+  schedule:
+    - cron: "17 5 * * *" # 07:17 in Poland in summer; off the hour, as GitHub asks
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  UV_PYTHON: "3.14"
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: docker.io/postgis/postgis:17-3.6-alpine@sha256:a8ffa9afeea4ad6eada171fa2afdb57cd3eb90f92ce20156aa2cb8411d70e0cd
+        env:
+          POSTGRES_USER: grzyby
+          POSTGRES_PASSWORD: grzyby
+          POSTGRES_DB: grzyby
+        ports:
+          - 5443:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U grzyby"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: ./scripts/.internal/live-check.sh
+      # A red run goes to #app-grzyby-notif, beside the cluster's alerts. The webhook is a repo
+      # secret set by the platform repo's scripts/projects/grzyby/setup.sh; without it, silence.
+      - name: Tell Discord
+        if: failure()
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_APP_GRZYBY_NOTIF }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "$WEBHOOK" ]; then echo "no DISCORD_APP_GRZYBY_NOTIF secret: nobody told"; exit 0; fi
+          msg=":x: **grzyby** — testy na prawdziwych usługach nie przeszły: BDL, GDOŚ, Open-Meteo albo Nominatim zmieniły odpowiedź lub nie odpowiadają\n$RUN"
+          curl -fsS -H 'Content-Type: application/json' -d "{\"content\": \"$msg\"}" "$WEBHOOK"

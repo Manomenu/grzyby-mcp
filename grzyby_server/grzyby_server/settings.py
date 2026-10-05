@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     # The key /mcp asks for (mcp_key.py). Unset on a laptop — no check; set on the cluster from
     # the platform repo's Secret.
     mcp_key: str | None = None
+    # /mcp open to anyone, the key kept for later (mcp_key.py). Off by default; the cluster turns it
+    # on with the chart's server.allowPublic.
+    allow_public: bool = False
 
     # Host headers /mcp answers to — the SDK's guard against DNS rebinding. Locally any port on
     # localhost (bare too: nginx forwards $host without the port); the cluster sets its own names

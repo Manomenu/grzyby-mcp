@@ -122,7 +122,9 @@ against a real server and an empty database of its own, on ports apart from the 
 develop on. A test that fails in CI is retried once, only so the report tells a steady failure
 from a flaky one; passing on the retry still fails the job (`failOnFlakyTests`) — flaky is a
 bug, in the test or in the app. **CI** runs three jobs: `test` (the gate), `e2e`, and `build`,
-which builds the images only when both are green and publishes them only from `master`.
+which builds the images only when both are green and publishes them only from `master`. A
+fourth workflow, `live.yml`, runs the tests against the real outside services once a day
+(`scripts/.internal/live-check.sh`) — the only check that notices a service changing under us.
 
 **After deploy**, Argo runs `deploy/chart/templates/smoke-test.yaml` (a PostSync Job with
 curl): a handful of read-only requests through the real Services, the way traffic arrives
@@ -410,6 +412,7 @@ Two vocabularies, chosen word by word:
   | `scripts/.internal/api-types.sh [--check]` | regenerate `grzyby_web/src/api/openapi.d.ts` after changing a model the API exposes. Never edit that file by hand |
   | `scripts/.internal/secrets.sh backup\|restore` | **not for agents** — the owner's copy of the `.env` files in Bitwarden (`just secrets`, section 7); it asks for the master password |
   | `scripts/.internal/claude-connector.sh` | **not for agents** — prints the production `/mcp` key for the owner to paste into Claude's connector (`just claude-connector`) |
+  | `scripts/.internal/live-check.sh` | the tests against the real outside services (BDL, GDOŚ, Open-Meteo, Nominatim; `grzyby_server/tests/live`) — not in the gate; CI runs them daily (`.github/workflows/live.yml`). Run it after touching how a service is called |
   | `scripts/.internal/infra-status.sh` | what of the compose stack is up and on which ports (needs `jq`) |
 
   A new helper an agent should reach for goes here too, with a row in this table.

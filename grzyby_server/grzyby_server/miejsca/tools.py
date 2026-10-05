@@ -25,8 +25,9 @@ MAP_HTML = Path(__file__).with_name("mapa.html").read_text(encoding="utf-8")
 # a broken old version of mapa.html after it was fixed), so every change gets a new one.
 MAP_URI = f"ui://grzyby/mapa-{hashlib.sha256(MAP_HTML.encode()).hexdigest()[:12]}.html"
 
-# Each spot is a paragraph of text for the chatbot and a numbered marker; past ten neither reads well.
-MAX_SPOTS = 10
+# Each spot is a paragraph of text for the chatbot and a numbered marker: fifteen per view at most —
+# with several mushrooms the text grows to ~18 KB, and a busier map stops being readable.
+MAX_SPOTS = 15
 
 apps = Apps()
 
@@ -58,7 +59,7 @@ Promien = Annotated[int, Field(ge=1, le=30, description="Promień poszukiwań w 
     name="gdzie_na_grzyby",
     title="Gdzie na grzyby",
     description=(
-        "Wskazuje drzewostany najbardziej obiecujące na wybrane grzyby (domyślnie 3 miejsca, na prośbę do 10) "
+        "Wskazuje drzewostany najbardziej obiecujące na wybrane grzyby (domyślnie 3 miejsca, na prośbę do 15) "
         "w promieniu promien_km od podanej miejscowości: drzewa, siedlisko, wiek, sezon, uzasadnienie i link "
         "do trasy. Ocena jest osobna dla każdego grzyba — według jego drzew, siedlisk, wieku lasu i miesiąca. "
         "Jeśli użytkownik nie powiedział, jakich grzybów szuka, zapytaj go albo zaproponuj (np. borowik, "
