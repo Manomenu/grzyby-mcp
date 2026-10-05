@@ -2,10 +2,10 @@
 // the one check that runs its JavaScript. Without it a typo there passes every other test and
 // shows up as an empty map in Claude, after a deploy (docs/mcp-apps.md).
 //
-// Like the host: the widget comes from the real server over MCP (tools/list → resources/read),
-// is served from an origin of its own under the CSP built from its own metadata (`_meta.ui.csp`,
-// the rule in the MCP Apps spec), inside a sandbox without popups, and gets the tool result over
-// postMessage from a stand-in host that records what the widget asks of it.
+// Like the host: the widget comes from the real server over MCP (e2e/helpers.ts), is served from
+// an origin of its own under the CSP built from its own metadata, inside a sandbox without popups,
+// and gets the tool result over postMessage from a stand-in host that records what the widget asks
+// of it.
 //
 // The result is mapa.answer.json: a real answer of the server's search over a handful of made-up
 // stands, the best of them a big pine forest under spot 1. Any valid answer works;
@@ -13,7 +13,9 @@
 // phone project alike; the widget takes the page's width, as in a chat.
 import { readFileSync } from "node:fs";
 
-import { type APIRequestContext, expect, type FrameLocator, test } from "@playwright/test";
+import { expect, type FrameLocator, test } from "@playwright/test";
+
+import { fetchWidget } from "../../e2e/helpers";
 
 // The server playwright.config.ts starts for the run.
 const MCP = "http://localhost:6211/mcp";
@@ -32,10 +34,6 @@ interface HostRecord {
     links: string[];
     displayModes: string[];
 }
-interface Csp {
-    resourceDomains?: string[];
-    connectDomains?: string[];
-}
 
 /** The whole dashed search circle is on the map, and fills most of it. */
 async function circleFillsTheMap(widget: FrameLocator): Promise<boolean> {
@@ -51,47 +49,6 @@ async function circleFillsTheMap(widget: FrameLocator): Promise<boolean> {
 }
 
 const answer = JSON.parse(readFileSync(new URL("./mapa.answer.json", import.meta.url), "utf8")) as Answer;
-
-async function rpc<T>(request: APIRequestContext, method: string, params: object = {}): Promise<T> {
-    const response = await request.post(MCP, {
-        headers: { accept: "application/json, text/event-stream" },
-        data: { jsonrpc: "2.0", id: 1, method, params },
-    });
-    expect(response.ok()).toBe(true);
-    return ((await response.json()) as { result: T }).result;
-}
-
-/** The widget's HTML and its CSP, fetched the way a host does. */
-async function fetchWidget(request: APIRequestContext): Promise<{ html: string; csp: string }> {
-    const { tools } = await rpc<{ tools: { name: string; _meta: { ui: { resourceUri: string } } }[] }>(request, "tools/list");
-    const tool = tools.find((t) => t.name === "gdzie_na_grzyby");
-    if (!tool) throw new Error("the server lists no gdzie_na_grzyby");
-    const { contents } = await rpc<{ contents: { text: string; mimeType: string; _meta?: { ui?: { csp?: Csp } } }[] }>(
-        request,
-        "resources/read",
-        { uri: tool._meta.ui.resourceUri },
-    );
-    const [resource] = contents;
-    if (!resource) throw new Error("the widget resource is empty");
-    expect(resource.mimeType).toBe("text/html;profile=mcp-app");
-    return { html: resource.text, csp: hostCsp(resource._meta?.ui?.csp ?? {}) };
-}
-
-/** The spec's "CSP Construction from Metadata": nothing but what the widget declared. */
-function hostCsp({ resourceDomains = [], connectDomains = [] }: Csp): string {
-    const resources = resourceDomains.join(" ");
-    return [
-        "default-src 'none'",
-        `script-src 'self' 'unsafe-inline' ${resources}`,
-        `style-src 'self' 'unsafe-inline' ${resources}`,
-        `img-src 'self' data: ${resources}`,
-        `font-src 'self' ${resources}`,
-        `media-src 'self' data: ${resources}`,
-        `connect-src 'self' ${connectDomains.join(" ")}`,
-        "frame-src 'none'",
-        "object-src 'none'",
-    ].join("; ");
-}
 
 // The stand-in host: answers ui/initialize offering full screen, sends the tool result once the
 // widget is ready, and records the links and display modes it is asked for.
@@ -129,7 +86,7 @@ window.addEventListener("message", (event) => {
 </body></html>`;
 
 test("the map widget draws the answer under the host's CSP and talks to the host", async ({ page, request }) => {
-    const { html, csp } = await fetchWidget(request);
+    const { html, csp } = await fetchWidget(request, MCP);
     await page.route(HOST, (route) => route.fulfill({ contentType: "text/html; charset=utf-8", body: hostPage(answer) }));
     await page.route(WIDGET, (route) =>
         route.fulfill({ contentType: "text/html; charset=utf-8", headers: { "Content-Security-Policy": csp }, body: html }),

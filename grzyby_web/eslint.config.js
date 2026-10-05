@@ -32,8 +32,9 @@ export default defineConfig(
     // layer in pyproject.toml.
     {
         files: ["src/**/*.{ts,tsx}"],
-        // Browser tests drive the page from outside; they import only e2e/helpers.
-        ignores: ["src/**/*.e2e.ts"],
+        // Browser tests and the README's pictures drive the page from outside; they import only
+        // e2e/helpers.
+        ignores: ["src/**/*.e2e.ts", "src/**/*.shots.ts"],
         plugins: { boundaries },
         settings: {
             "import/resolver": { node: { extensions: [".ts", ".tsx"] } },

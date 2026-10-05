@@ -2,5 +2,5 @@
     "$schema": "./node_modules/knip/schema.json",
     "ignore": ["src/api/openapi.d.ts"],
     "ignoreDependencies": ["openapi-typescript"],
-    "playwright": { "config": ["e2e/playwright.config.ts"] }
+    "playwright": { "config": ["e2e/playwright.config.ts", "e2e/screenshots.config.ts"] }
 }

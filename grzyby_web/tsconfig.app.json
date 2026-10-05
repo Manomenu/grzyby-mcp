@@ -22,5 +22,5 @@
     },
     "include": ["src"],
     // The browser app. Browser tests run in Node under Playwright: tsconfig.node.json checks them.
-    "exclude": ["src/**/*.e2e.ts"]
+    "exclude": ["src/**/*.e2e.ts", "src/**/*.shots.ts"]
 }

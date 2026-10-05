@@ -413,6 +413,7 @@ Two vocabularies, chosen word by word:
   | `scripts/.internal/secrets.sh backup\|restore` | **not for agents** — the owner's copy of the `.env` files in Bitwarden (`just secrets`, section 7); it asks for the master password |
   | `scripts/.internal/claude-connector.sh` | **not for agents** — prints the production `/mcp` key for the owner to paste into Claude's connector (`just claude-connector`) |
   | `scripts/.internal/live-check.sh` | the tests against the real outside services (BDL, GDOŚ, Open-Meteo, Nominatim; `grzyby_server/tests/live`) — not in the gate; CI runs them daily (`.github/workflows/live.yml`). Run it after touching how a service is called |
+  | `scripts/.internal/screenshots.sh [playwright args]` | the README's pictures of the map widget (`grzyby_web/src/**/*.shots.ts`, config `e2e/screenshots.config.ts`) into `docs/img/`: real answers of the production server (`SHOTS_MCP` for another), laptop and phone. Run it after changing what the widget looks like |
   | `scripts/.internal/infra-status.sh` | what of the compose stack is up and on which ports (needs `jq`) |
 
   A new helper an agent should reach for goes here too, with a row in this table.
