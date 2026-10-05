@@ -62,17 +62,10 @@ sprawdzimy licencji danych.
       ocena dla każdego grzyba i średnia z listy. Widoki „wszystkie” (średnia) i każdy grzyb
       osobno — każdy z własnymi miejscami; okienko lasu z oceną każdego grzyba. Liczby w profilach to wiedza
       grzybiarza, nie pomiar — do korekty po wyjściach w teren (etap 2).
-- [ ] **Zdjęcia widżetu** — gdy będą pogoda i rodzaj grzyba (do README i na stronę), na dwóch
-      przykładach:
-      1. Suwałki, 15 km, 10 miejsc, kurki;
-      2. Płociczno-Osiedle, 2 km, 4 miejsca, wszystkie grzyby.
-      Laptop: oba przykłady jeden pod drugim — jeden na pełnym ekranie, drugi w czacie.
-      Telefon: dwa ładne przykłady obok siebie. Narzędzie już jest: udawany host z
-      `grzyby_web/src/miejsca/mapa.e2e.ts` i projekty `laptop` / `phone` w Playwright.
-      Przy okazji **README dla użytkownika, nie dla programisty**: czym to jest, zdjęcia, jak
-      podłączyć w Claude, skąd dane. Wszystko techniczne, co dziś jest tylko w README (stack,
-      komendy `just`, klucz i jego zmiana, Claude Code, praca lokalna), przenieść do `docs/`
-      (np. `docs/dev/README.md`), a z README zostawić jeden link „dla programistów”.
+- [x] **Zdjęcia widżetu i README dla użytkownika** (5.10.2026) — cztery zdjęcia z prawdziwych
+      odpowiedzi produkcji (`just screenshots`, `grzyby_web/src/miejsca/mapa.shots.ts`): laptop
+      i telefon, w czacie i na pełnym ekranie, każde w innym trybie mapy. README mówi do grzybiarza;
+      technika w `docs/dev/README.md`.
 - [x] Wyłączenie miejsc, gdzie nie wolno: zakazy wstępu, parki narodowe, rezerwaty (GDOŚ
       i `forest_fun = REZ` w BDL); drzewostan stykający się z takim obszarem też odpada.
 - [x] Narzędzie MCP `gdzie_na_grzyby(miejscowosc, promien_km)` → 3 najlepsze miejsca, co

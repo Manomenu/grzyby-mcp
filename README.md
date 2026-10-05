@@ -1,99 +1,76 @@
-# grzyby-mcp
+# Gdzie na grzyby
 
-Serwer MCP dla chatbotów (Claude, ChatGPT): pytasz „gdzie w okolicy X są teraz grzyby?”, a w
-odpowiedzi dostajesz **mapkę** z zaznaczonym kawałkiem lasu, krótkie uzasadnienie (drzewa,
-opady, temperatura) i link do trasy w Google Maps. Dane: Bank Danych o Lasach (drzewostany,
-zakazy wstępu) i pogoda z Open-Meteo.
+Podpowiadacz dla grzybiarzy w Twoim chatbocie (Claude, ChatGPT). Pytasz po prostu: „gdzie na
+podgrzybki koło Suwałk?”, a w odpowiedzi dostajesz **mapę lasów w okolicy** pokolorowaną według
+szans, **ponumerowane najlepsze miejsca** z uzasadnieniem i **link do trasy** w Google Maps.
 
-**Stan:** etap 1 w toku. Narzędzie `gdzie_na_grzyby` pod `/mcp` (z mapką, MCP Apps) wskazuje
-trzy najbardziej obiecujące prawdziwe drzewostany wokół miejscowości — według gatunku, wieku
-i siedliska, z pominięciem parków narodowych, rezerwatów i lasów z zakazem wstępu. Mapa koloruje
-wszystkie drzewostany w promieniu (tryby: wynik, drzewa, wiek, siedlisko). Działa w całej Polsce
-(tylko Lasy Państwowe); ocena uwzględnia pogodę z ostatnich dni (Open-Meteo). Plan: [TODO.md](TODO.md),
-propozycja stacka: [docs/dev/propozycja-stacka.md](docs/dev/propozycja-stacka.md).
+![Mapa w czacie na laptopie: podgrzybki koło Suwałk, dziesięć ponumerowanych miejsc w okręgu 10 km, lasy pokolorowane według oceny](docs/img/laptop-chat.png)
 
-Skąd dane: drzewostany (BDL), parki i rezerwaty (GDOŚ) trafiają do PostGIS przy pierwszym pytaniu
-o daną okolicę (kwadratami ok. 11 × 10 km, `grzyby_server/lasy/tiles.py`), a CronJob raz
-w miesiącu odświeża te, o które już pytano; zakazy wstępu (BDL) serwer
-pobiera sam przy zapytaniu i trzyma 4 godziny; nazwę miejscowości zamienia na współrzędne
-Nominatim (OpenStreetMap), z zapamiętaniem w bazie.
+![Mapa na pełnym ekranie na laptopie: Płociczno-Osiedle, okrąg 2 km, lasy pokolorowane według gatunku drzew](docs/img/laptop-fullscreen.png)
 
-Projekt hobbystyczny, bez części komercyjnej.
+<p align="center">
+  <img src="docs/img/phone-chat.png" width="49%" alt="Mapa w czacie na telefonie: prawdziwki i podgrzybki koło Chełma, kwadraty pogody — gdzie ziemia jest mokra po deszczu" />
+  <img src="docs/img/phone-fullscreen.png" width="49%" alt="Mapa na pełnym ekranie na telefonie: Augustów, lasy pokolorowane według wieku drzewostanu" />
+</p>
 
-## Stack
+## Co dostajesz
 
-- **Serwer:** Python 3.14, FastAPI, SDK `mcp` (MCP Apps), PostgreSQL z PostGIS (psycopg, czyste
-  SQL, migracje w `grzyby_server/grzyby_server/migrations/`).
-- **Web:** React, Mantine, Vite, TypeScript strict.
-- **Uruchamianie:** na hoście (`just server`, `just web`), cały stack w kontenerach
-  (`just up`) albo na klastrze k3s przez Argo CD (`deploy/chart/`).
-- Założony z szablonu [solid-app-tpl](https://github.com/Manomenu/solid-app-tpl).
+- **Miejsca, nie ogólniki.** Konkretne kawałki lasu (drzewostany) w promieniu, który podasz, co
+  najmniej kilometr od siebie, ponumerowane na mapie — domyślnie 3, na prośbę do 15.
+- **Dlaczego właśnie tam:** jakie drzewa, jaki las, ile ma lat, czy to sezon na ten grzyb i jaka
+  była pogoda — deszcz sprzed kilku dni, wilgotność gleby, temperatura, przymrozki.
+- **Każdy grzyb osobno.** Borowik, podgrzybek, kurka, koźlarz, maślak, rydz — każdy lubi co innego,
+  więc każdy ma swoje miejsca. Pytasz o kilka naraz: dostajesz miejsca na wszystkie i na każdy z osobna.
+- **Mapa z trybami:** wynik, drzewa, wiek, siedlisko (typ lasu) i pogoda. Kliknięcie w las pokazuje,
+  skąd jego ocena. Na telefonie i na pełnym ekranie też.
+- **Kiedy jechać:** „kiedy najlepiej na kurki koło Augustowa?” — ocena okolicy na dziś i na 5 dni
+  naprzód, z najlepszym dniem.
+- **Tylko tam, gdzie wolno:** pomija parki narodowe, rezerwaty i lasy z aktualnym zakazem wstępu
+  (np. przy zagrożeniu pożarowym).
 
-## Wymagania
+Działa w całej Polsce. Pierwsze pytanie o nową okolicę trwa kilka sekund, bo dane o lasach dopiero
+przychodzą; potem jest szybko.
 
-`uv`, `pnpm` (przez corepack), `just`, `podman` z `podman compose`; do pełnej bramki także
-`helm`, `shellcheck` i `gitleaks`. Po sklonowaniu: `just sync` (zależności i hook gitleaks).
-Do testów w przeglądarce raz: `cd grzyby_web && pnpm exec playwright install chromium`.
+## Jak podłączyć
 
-## Na co dzień
+Adres serwera: **`https://grzyby.gugnowski.com/mcp`** — bez logowania i bez klucza.
 
-```sh
-just                 # wszystkie komendy, w grupach
-just db up           # lokalny PostgreSQL na :5443
-just server          # API na :6210 (Swagger pod /docs)
-just web             # aplikacja na :3210, /api przekazuje do serwera
-just import          # dane o lasach wokół Suwałk, Chełma, Gdańska i Ponikwi Wielkiej do lokalnej bazy (reszta dociąga się przy pytaniu)
-just up              # cały stack w kontenerach na :8091 — bez klastra
-just import-up       # to samo dla bazy stacku w kontenerach
-just check           # bramka jakości, dokładnie to, co odpala CI
-just e2e             # testy w przeglądarce na prawdziwym serwerze i bazie
-just secrets backup  # kopia lokalnych plików .env w Bitwardenie (restore na nowej maszynie)
-```
+**Claude** (claude.ai, aplikacja na komputer i telefon):
 
-## Podłączenie do chatbota
+1. Ustawienia → **Konektory** → **Dodaj własny konektor**.
+2. Nazwa: `grzyby`, adres: `https://grzyby.gugnowski.com/mcp`. Zapisz.
+3. W nowej rozmowie włącz konektor (ikona narzędzi pod polem wiadomości) i zapytaj, np.
+   „Gdzie dziś na prawdziwki koło Olsztyna?”.
 
-Serwer działa pod **`https://grzyby.gugnowski.com/mcp`** i wymaga klucza. Serwer przyjmuje go na
-dwa sposoby: nagłówkiem `Authorization: Bearer <MCP_KEY>` (zalecane) albo `?key=<MCP_KEY>` w
-adresie (tylko awaryjnie, dla klientów, które nie umieją wysłać nagłówka).
+**ChatGPT:** w ustawieniach włącz tryb dewelopera i dodaj aplikację (konektor) z tym samym adresem,
+bez uwierzytelniania.
 
-Klucz jest w Bitwardenie (notatka `suwalski-platform/.secrets/grzyby.env`, wartość `MCP_KEY`);
-na laptopie właściciela także w `suwalski-platform/.secrets/grzyby.env`. Nigdy nie wklejaj go
-do repo, zgłoszeń ani rozmów. **`just claude-connector`** wypisuje wszystko, co trzeba wpisać
-w konektorze (nazwa, URL, nagłówek z kluczem) i gotową komendę dla Claude Code — klucz bierze
-z pliku obok albo z Bitwardena.
-
-**Claude (claude.ai, aplikacja na komputer i telefon):**
-
-1. Ustawienia → **Konektory** (Connectors) → **„Dodaj własny konektor”** (Add custom connector).
-2. Nazwa: `grzyby`, URL: `https://grzyby.gugnowski.com/mcp` — **bez** `?key=`.
-3. Authentication: **„No sign-in”** (Claude wykrywa to sam).
-4. Request headers: nazwa `Authorization`, wartość `Bearer <MCP_KEY>` (Claude zapisuje wartość
-   nagłówka i już jej nie pokazuje).
-5. Zapisz; w nowej rozmowie włącz konektor (ikona narzędzi pod polem wiadomości) i zapytaj np.
-   „Gdzie teraz na grzyby koło Suwałk?” — odpowiedź przyjdzie z mapką.
-
-Klucz w nagłówku, a nie w adresie, bo wtedy nie trafia do adresu, logów ani historii.
-
-**Klient bez nagłówków** (np. jeśli konektor ChatGPT nie umie ich wysłać): adres
-`https://grzyby.gugnowski.com/mcp?key=<MCP_KEY>`. Kto ma ten adres, ma dostęp.
-
-**Claude Code** (klucz w nagłówku, nie w adresie):
+**Claude Code:**
 
 ```sh
-claude mcp add --transport http grzyby https://grzyby.gugnowski.com/mcp --header "Authorization: Bearer <MCP_KEY>"
+claude mcp add --transport http grzyby https://grzyby.gugnowski.com/mcp
 ```
 
-**Lokalnie** (`just server`, bez klucza):
+Po aktualizacji serwera odłącz i podłącz konektor ponownie, jeśli mapa wygląda po staremu —
+chatboty zapamiętują jej starą wersję.
 
-```sh
-claude mcp add --transport http grzyby-local http://localhost:6210/mcp
-```
+## Czego nie wie
 
-**Zmiana klucza:** `scripts/projects/grzyby/setup.sh` w suwalski-platform (podaj nową wartość),
-potem restart serwera (`kubectl -n grzyby rollout restart deployment/grzyby-server`) i nowy
-nagłówek w każdym konektorze — stary klucz przestaje działać.
+- **Zna tylko lasy państwowe.** Lasy prywatne i gminne są na mapie puste — nie dlatego, że nic tam
+  nie rośnie, tylko dlatego, że nie ma o nich danych.
+- **Ocena to wzór, nie wyrocznia.** Łączy wiedzę grzybiarzy o tym, co który grzyb lubi, z pogodą
+  ostatnich dni. Podpowiada, gdzie warto zacząć; grzyby i tak trzeba znaleźć samemu — i znać.
+  Nie zbieraj grzybów, których nie umiesz rozpoznać.
+- **Zakazy wstępu sprawdzaj na miejscu** — tablice przy lesie są ważniejsze niż mapa.
 
-Mapa w odpowiedzi (MCP Apps): jak działa, czego wymaga Claude i co sprawdzać, gdy jej nie
-widać — [docs/mcp-apps.md](docs/mcp-apps.md).
+## Skąd dane
 
-Jak repo jest zorganizowane i co musi przynieść każda zmiana: [AGENTS.md](AGENTS.md).
+- Drzewostany i zakazy wstępu: [Bank Danych o Lasach](https://www.bdl.lasy.gov.pl/) (CC BY 4.0).
+- Parki narodowe i rezerwaty: Generalna Dyrekcja Ochrony Środowiska.
+- Pogoda: [Open-Meteo](https://open-meteo.com/) (CC BY 4.0).
+- Położenie miejscowości: Nominatim, © autorzy [OpenStreetMap](https://www.openstreetmap.org/copyright).
+- Podkład mapy: © autorzy OpenStreetMap, © [CARTO](https://carto.com/attributions).
+
+Projekt hobbystyczny, darmowy, bez reklam i bez zbierania danych o Tobie.
+
+Dla programistów: [docs/dev/README.md](docs/dev/README.md).

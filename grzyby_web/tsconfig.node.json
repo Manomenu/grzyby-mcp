@@ -1,12 +1,13 @@
 {
-    // Code that runs in Node, not in the browser: the Vite config and the Playwright tests.
+    // Code that runs in Node, not in the browser: the Vite config, the Playwright tests and the
+    // README's pictures (*.shots.ts).
     "extends": "./tsconfig.app.json",
     "compilerOptions": {
         "lib": ["ES2022", "DOM"],
         "types": ["node"],
         "jsx": "preserve"
     },
-    "include": ["vite.config.ts", "e2e", "src/**/*.e2e.ts"],
+    "include": ["vite.config.ts", "e2e", "src/**/*.e2e.ts", "src/**/*.shots.ts"],
     // Not inherited: tsconfig.app.json leaves out exactly the files this one checks.
     "exclude": []
 }

@@ -36,6 +36,11 @@ web *args:
 api-types:
     @./scripts/.internal/api-types.sh
 
+# The README's pictures of the map (docs/img/): real answers of the production server, laptop and phone
+[group('dev')]
+screenshots *args:
+    @./scripts/.internal/screenshots.sh {{ args }}
+
 # Fetch forest data around the benchmark areas (Suwałki, Chełm, Gdańsk, Ponikiew Wielka) into the local database — needs `just db up`
 [group('dev')]
 import:
