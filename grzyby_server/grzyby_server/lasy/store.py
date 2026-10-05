@@ -28,8 +28,9 @@ def replace_tile(
     for kind, feature in areas:
         upsert_obszar(conn, kind, feature)
     conn.execute(
-        "INSERT INTO fetched_tiles (tile, fetched_at) VALUES (%s, %s) ON CONFLICT (tile) DO UPDATE SET fetched_at = excluded.fetched_at",
-        (tile.id, now),
+        "INSERT INTO fetched_tiles (tile, fetched_at, first_fetched_at) VALUES (%s, %s, %s)"
+        " ON CONFLICT (tile) DO UPDATE SET fetched_at = excluded.fetched_at",
+        (tile.id, now, now),
     )
     return count
 
@@ -87,6 +88,12 @@ def upsert_obszar(conn: Connection, kind: ObszarKind, feature: Feature) -> None:
 
 def fetched_tiles(conn: Connection) -> list[Tile]:
     return [Tile.parse(tile_id) for (tile_id,) in conn.execute("SELECT tile FROM fetched_tiles ORDER BY tile")]
+
+
+def tiles_new_since(conn: Connection, since: datetime) -> int:
+    """How many tiles first came in after `since` — refreshes of old ones do not count."""
+    row = conn.execute("SELECT count(*) FROM fetched_tiles WHERE first_fetched_at > %s", (since,)).fetchone()
+    return row[0] if row else 0
 
 
 def oldest_fetch(conn: Connection, tiles: Iterable[Tile]) -> datetime | None:

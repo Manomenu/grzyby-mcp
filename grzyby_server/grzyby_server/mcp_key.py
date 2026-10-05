@@ -5,6 +5,10 @@ The endpoint is public (chatbots call it from their own servers), so it asks for
 client that cannot send headers, `?key=…` in the URL (it then ends up in logs and history).
 No key configured (on a laptop) means no check. Rotating it = a new value in the platform
 repo's setup.sh, a server restart and the new header in every connector.
+
+`allow_public` (settings.allow_public, chart server.allowPublic) opens /mcp to anyone while the
+key stays configured: the guard steps aside, and turning the flag off closes it again — no new
+key, no change in the connectors that send one.
 """
 
 import hmac
@@ -18,14 +22,15 @@ log = logging.getLogger("uvicorn.error")
 
 
 class RequireKey:
-    """ASGI wrapper: lets a request through only with the right key."""
+    """ASGI wrapper: lets a request through only with the right key — or any request, when public."""
 
-    def __init__(self, app: ASGIApp, key: str | None) -> None:
+    def __init__(self, app: ASGIApp, key: str | None, *, allow_public: bool = False) -> None:
         self.app = app
         self.key = key
+        self.allow_public = allow_public
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] == "http" and self.key and not _has_key(scope, self.key):
+        if scope["type"] == "http" and self.key and not self.allow_public and not _has_key(scope, self.key):
             # Why, never what: enough to tell a missing header from a wrong value.
             log.warning("/mcp refused: %s", "wrong key" if _given(scope) else "no key")
             response = JSONResponse({"detail": "missing or wrong key"}, status_code=401)

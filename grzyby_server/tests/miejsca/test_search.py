@@ -1,11 +1,13 @@
 from collections.abc import Mapping
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
+import pytest
 from psycopg import Connection
 
+from grzyby_server.lasy import tiles
 from grzyby_server.miejsca import geocoding
 from grzyby_server.miejsca.model import Grzyb, as_text, route_url
-from grzyby_server.miejsca.search import Query, search
+from grzyby_server.miejsca.search import REFUSED, Query, search
 from tests.fake_web import Answer, FakeWeb, area, forest_services, stand
 
 NOW = datetime(2026, 10, 4, 10, 0, tzinfo=UTC)
@@ -160,3 +162,45 @@ def test_days_further_ahead_say_the_weather_is_a_forecast(conn: Connection) -> N
     answer = search(conn, web(stands=[stand("pine", LON, LAT)]), Query("Suwałki", [Grzyb.BOROWIK], 15, 3, za_ile_dni=4), NOW)
 
     assert any("prognozie pogody" in uwaga for uwaga in answer.uwagi)
+
+
+def test_the_same_question_again_is_answered_from_the_cache(conn: Connection) -> None:
+    services = web(stands=[stand("pine", LON, LAT)])
+    first = search(conn, services, Query("Suwałki", [Grzyb.BOROWIK], 15, 3), NOW)
+    asked = len(services.calls)
+
+    again = search(conn, services, Query(" suwałki ", [Grzyb.BOROWIK], 15, 3), NOW + timedelta(minutes=30))
+    other = search(conn, services, Query("Suwałki", [Grzyb.KURKA], 15, 3), NOW + timedelta(minutes=30))
+
+    assert again == first
+    assert len(services.calls) == asked  # not even the bans or the weather
+    assert other.grzyby == ["kurka"]
+
+
+def test_an_answer_with_a_failed_service_is_not_kept(conn: Connection) -> None:
+    query = Query("Suwałki", [Grzyb.BOROWIK], 15, 3)
+    search(conn, web(stands=[stand("pine", LON, LAT)], bans=OSError("down")), query, NOW)
+
+    answer = search(conn, web(stands=[stand("pine", LON, LAT)]), query, NOW + timedelta(minutes=1))
+
+    assert not any("zakazów wstępu" in uwaga for uwaga in answer.uwagi)
+
+
+def test_a_new_area_past_the_daily_limit_is_a_note_not_a_claim_of_no_forests(conn: Connection, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(tiles, "DAILY_LIMIT", 0)
+
+    answer = search(conn, web(stands=[stand("pine", LON, LAT)]), Query("Suwałki", [Grzyb.BOROWIK], 15, 3), NOW)
+
+    assert answer.miejsca == []
+    assert answer.uwagi == [REFUSED[tiles.Refusal.DAILY_LIMIT]]
+
+
+def test_a_cached_answer_for_today_does_not_answer_tomorrow(conn: Connection) -> None:
+    services = web(stands=[stand("pine", LON, LAT)])
+
+    today = search(conn, services, Query("Suwałki", [Grzyb.BOROWIK], 15, 3), NOW)
+    tomorrow = search(conn, services, Query("Suwałki", [Grzyb.BOROWIK], 15, 3, za_ile_dni=1), NOW)
+    again = search(conn, services, Query("Suwałki", [Grzyb.BOROWIK], 15, 3), NOW)
+
+    assert (today.dzien, tomorrow.dzien) == (date(2026, 10, 4), date(2026, 10, 5))
+    assert again == today

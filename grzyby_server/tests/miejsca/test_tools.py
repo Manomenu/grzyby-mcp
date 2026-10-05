@@ -2,7 +2,7 @@
 
 import hashlib
 from collections.abc import Iterator
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 import pytest
@@ -72,7 +72,7 @@ def test_the_tool_answers_in_text_and_as_data_for_the_map(
     "arguments",
     [
         {"grzyby": ["kurka"], "promien_km": 500},
-        {"grzyby": ["kurka"], "ile_miejsc": 11},
+        {"grzyby": ["kurka"], "ile_miejsc": 16},
         {"grzyby": ["kurka"], "ile_miejsc": 0},
         {},  # no mushrooms: the chatbot has to ask the user first
         {"grzyby": []},
@@ -142,7 +142,8 @@ def clean_tables(pool: ConnectionPool) -> Iterator[None]:
     yield
     with pool.connection() as conn:
         conn.execute(
-            "TRUNCATE wydzielenia, obszary_chronione, fetched_tiles, geocoding_cache, fetches, zakazy_wstepu, pogoda, weather_fetches"
+            "TRUNCATE wydzielenia, obszary_chronione, fetched_tiles, geocoding_cache, fetches, zakazy_wstepu, pogoda, weather_fetches,"
+            " answer_cache"
         )
 
 
@@ -167,3 +168,34 @@ def test_the_when_tool_end_to_end(client: TestClient, pool: ConnectionPool, monk
     assert len(forecast["dni"]) == 6
     assert forecast["najlepszy"] != forecast["dni"][0]["dzien"]  # not today: yesterday's rain has not acted yet
     assert "**Najlepiej:" in result["content"][0]["text"]
+
+
+@pytest.mark.usefixtures("clean_tables")
+def test_the_where_tool_end_to_end(client: TestClient, pool: ConnectionPool, monkeypatch: pytest.MonkeyPatch) -> None:
+    # The whole path — MCP, the tool, the area, the database, the map — with only the internet
+    # stood in for; then the same question again, answered from the cache without going out.
+    today = datetime.now(POLAND).date()
+    services = FakeWeb(
+        {
+            geocoding.NOMINATIM: [{"lat": "54.10", "lon": "22.93", "display_name": "Suwałki, województwo podlaskie, Polska"}],
+            **forest_services(stands=[stand("pine", 22.93, 54.10)], weather=open_meteo(today)),
+        }
+    )
+    monkeypatch.setattr(tools, "get_json", services)
+    monkeypatch.setattr(db, "pool", pool)
+    arguments = {"miejscowosc": "Suwałki", "grzyby": ["podgrzybek", "borowik"], "promien_km": 5, "za_ile_dni": 1}
+
+    result = rpc(client, "tools/call", {"name": "gdzie_na_grzyby", "arguments": arguments})
+    asked = len(services.calls)
+    again = rpc(client, "tools/call", {"name": "gdzie_na_grzyby", "arguments": arguments})
+
+    answer = result["structuredContent"]
+    assert answer["dzien"] == (today + timedelta(days=1)).isoformat()
+    assert [m["adres_lesny"] for m in answer["miejsca"]] == ["pine"]
+    assert set(answer["miejsca_na_grzyb"]) == {"podgrzybek", "borowik"}
+    assert answer["mapa"]["pogoda"]
+    assert answer["mapa"]["drzewostany"]["wiek"] == [70]
+    assert "pogoda:" in answer["miejsca_na_grzyb"]["borowik"][0]["dlaczego"]
+    assert "**Las sosnowy, 70 lat, 10 ha**" in result["content"][0]["text"]
+    assert again["structuredContent"] == answer
+    assert len(services.calls) == asked  # the second answer came from the cache

@@ -64,7 +64,10 @@ mcp_http = mcp.streamable_http_app(
 )
 # Every route of the MCP app (one: /mcp) behind the key.
 app.router.routes.extend(
-    Route(route.path, endpoint=RequireKey(route.app, settings.mcp_key)) if isinstance(route, Route) else route for route in mcp_http.routes
+    Route(route.path, endpoint=RequireKey(route.app, settings.mcp_key, allow_public=settings.allow_public))
+    if isinstance(route, Route)
+    else route
+    for route in mcp_http.routes
 )
 
 # Features add their routers here: app.include_router(notes) — and a layer in pyproject.toml.
