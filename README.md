@@ -35,21 +35,9 @@ przychodzą; potem jest szybko.
 
 Adres serwera: **`https://grzyby.gugnowski.com/mcp`** — bez logowania i bez klucza.
 
-**Claude** (claude.ai, aplikacja na komputer i telefon):
-
-1. Ustawienia → **Konektory** → **Dodaj własny konektor**.
-2. Nazwa: `grzyby`, adres: `https://grzyby.gugnowski.com/mcp`. Zapisz.
-3. W nowej rozmowie włącz konektor (ikona narzędzi pod polem wiadomości) i zapytaj, np.
-   „Gdzie dziś na prawdziwki koło Olsztyna?”.
-
-**ChatGPT:** w ustawieniach włącz tryb dewelopera i dodaj aplikację (konektor) z tym samym adresem,
-bez uwierzytelniania.
-
-**Claude Code:**
-
-```sh
-claude mcp add --transport http grzyby https://grzyby.gugnowski.com/mcp
-```
+Instrukcja krok po kroku jest na stronie **[grzyby.gugnowski.com](https://grzyby.gugnowski.com)**,
+osobno dla Claude (claude.ai i aplikacja na komputer), ChatGPT i Claude Code — czyli także dla
+klienta agentowego w terminalu.
 
 Po aktualizacji serwera odłącz i podłącz konektor ponownie, jeśli mapa wygląda po staremu —
 chatboty zapamiętują jej starą wersję.
