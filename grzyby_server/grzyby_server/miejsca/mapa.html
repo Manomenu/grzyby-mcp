@@ -190,8 +190,11 @@
             const map = L.map("map", { preferCanvas: true, zoomSnap: 0.25, trackResize: false }).setView([54.1, 22.93], 10);
             // OpenStreetMap's own tiles: no key, attribution required. Fine for a hobby's traffic;
             // their usage policy rules out heavy use — a busier map gets its own tile source.
+            // OSM blocks tile requests without a Referer, and some hosts' sandboxes (Codex) send
+            // none by default; the tile images ask for one themselves (osm.wiki/Blocked).
             L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
                 maxZoom: 19,
+                referrerPolicy: "strict-origin-when-cross-origin",
                 attribution: '© autorzy <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
             }).addTo(map);
             const layers = L.layerGroup().addTo(map);

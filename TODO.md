@@ -169,7 +169,7 @@ Platforma (suwalski-platform):
 
 - [ ] **Reguła rate limiting w Cloudflare na `/mcp`** — hojna (propozycja: 300 zapytań na
       minutę z IP; darmowy plan ma jedną regułę), zapisana też w TODO suwalski-platform.
-- [ ] **Włączyć dostęp publiczny** — `server.allowPublic: true` w Application platformy (flaga
+- [x] **Włączyć dostęp publiczny** — `server.allowPublic: true` w Application platformy (flaga
       jest w charcie od 5.10.2026). **Klucz zostaje** (`server.mcpKeySecret`, `just
       claude-connector`): wyłączenie flagi przywraca blokadę bez nowego klucza i bez zmian
       w konektorach, które go wysyłają. Potem instrukcja na stronie to sam adres konektora.
