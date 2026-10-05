@@ -19,8 +19,10 @@ from grzyby_server.fetch import get_json
 from grzyby_server.miejsca.best_day import best_day
 from grzyby_server.miejsca.model import Answer, Grzyb, Prognoza, as_text, forecast_text
 from grzyby_server.miejsca.search import MAX_DAY, MIN_DAY, Query, search
+from grzyby_server.settings import settings
 
-MAP_HTML = Path(__file__).with_name("mapa.html").read_text(encoding="utf-8")
+# The tiles' key goes in as the widget is read, so a new key also gets a new address (below).
+MAP_HTML = Path(__file__).with_name("mapa.html").read_text(encoding="utf-8").replace("__CARTO_KEY__", settings.carto_key)
 # The content's hash is part of the address: hosts cache a widget by its URI (Claude kept showing
 # a broken old version of mapa.html after it was fixed), so every change gets a new one.
 MAP_URI = f"ui://grzyby/mapa-{hashlib.sha256(MAP_HTML.encode()).hexdigest()[:12]}.html"
@@ -105,7 +107,7 @@ apps.add_html_resource(
     # The widget loads Leaflet and raster tiles from these hosts; the host's sandbox blocks
     # everything else — including blob: workers, which is why the map is Leaflet (plain images)
     # and not a WebGL library.
-    csp=ResourceCsp(resource_domains=["https://unpkg.com", "https://tile.openstreetmap.org"]),
+    csp=ResourceCsp(resource_domains=["https://unpkg.com", "https://basemaps.cartocdn.com"]),
     prefers_border=True,
 )
 

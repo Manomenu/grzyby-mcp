@@ -188,14 +188,14 @@
             // trackResize off: the ResizeObserver below handles every size change, and Leaflet's own
             // handler panning at the same moment would cut the circle's fit short.
             const map = L.map("map", { preferCanvas: true, zoomSnap: 0.25, trackResize: false }).setView([54.1, 22.93], 10);
-            // OpenStreetMap's own tiles: no key, attribution required. Fine for a hobby's traffic;
-            // their usage policy rules out heavy use — a busier map gets its own tile source.
-            // OSM blocks tile requests without a Referer, and some hosts' sandboxes (Codex) send
-            // none by default; the tile images ask for one themselves (osm.wiki/Blocked).
-            L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            // CARTO's tiles of OpenStreetMap data, with our key (tools.py puts it in): free up to 5 M
+            // tiles a month, 1 M once we earn; both attributions must stay visible. Not OSM's own
+            // tiles: they refuse requests without a Referer, and Codex on Windows sends none, and
+            // their policy rules out a public app's traffic.
+            L.tileLayer("https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=__CARTO_KEY__", {
                 maxZoom: 19,
-                referrerPolicy: "strict-origin-when-cross-origin",
-                attribution: '© autorzy <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                attribution:
+                    '© autorzy <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, © <a href="https://carto.com/attributions">CARTO</a>',
             }).addTo(map);
             const layers = L.layerGroup().addTo(map);
             // The weather mode's tiles, on the map only in that mode.

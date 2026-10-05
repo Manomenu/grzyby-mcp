@@ -135,10 +135,10 @@ test("the map widget draws the answer under the host's CSP and talks to the host
         route.fulfill({ contentType: "text/html; charset=utf-8", headers: { "Content-Security-Policy": csp }, body: html }),
     );
     // Every error in any frame — a CSP violation, a script that failed — fails the test. Map tiles
-    // are left out: an OpenStreetMap hiccup is not a bug of ours.
+    // are left out: a CARTO hiccup (or no key, as in this run) is not a bug of ours.
     const errors: string[] = [];
     page.on("console", (message) => {
-        if (message.type() === "error" && !message.location().url.includes("tile.openstreetmap.org")) errors.push(message.text());
+        if (message.type() === "error" && !message.location().url.includes("basemaps.cartocdn.com")) errors.push(message.text());
     });
     page.on("pageerror", (error) => errors.push(error.message));
     const host = () => page.evaluate(() => (window as unknown as { host: HostRecord }).host);

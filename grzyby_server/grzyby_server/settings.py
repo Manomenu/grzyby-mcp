@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     # on with the chart's server.allowPublic.
     allow_public: bool = False
 
+    # CARTO's key for the map's tiles (miejsca/mapa.html). Not a secret — it ships in the widget to
+    # every browser — but it is ours: the cluster sets it in the platform repo (chart:
+    # server.cartoKey). Empty on a laptop: the tiles still come, with CARTO's watermark.
+    carto_key: str = ""
+
     # Host headers /mcp answers to — the SDK's guard against DNS rebinding. Locally any port on
     # localhost (bare too: nginx forwards $host without the port); the cluster sets its own names
     # (chart: MCP_ALLOWED_HOSTS).

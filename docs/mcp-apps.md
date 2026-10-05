@@ -55,11 +55,13 @@ Wnioski:
 - **Nie MapLibre ani inna mapa WebGL** — uruchamia worker z adresu `blob:`, którego CSP nie
   dopuszcza; mapa się nie rysuje. Dlatego **Leaflet** z kafelkami rastrowymi (zwykłe `<img>`).
 - Każdy host, z którego coś ładujemy, musi być w `resource_domains` (`tools.py`): dziś
-  `https://unpkg.com` (Leaflet, `ext-apps`) i `https://tile.openstreetmap.org` (kafelki).
+  `https://unpkg.com` (Leaflet, `ext-apps`) i `https://basemaps.cartocdn.com` (kafelki).
   Zapytania `fetch` z widżetu — w `connect_domains`.
-- **Kafelki CARTO wymagają już klucza API** (pokazują „API KEY REQUIRED”) — odpadły.
-  OpenStreetMap: bez klucza, z przypisaniem; ich zasady wykluczają duży ruch — przy większym
-  ruchu własne źródło kafelków.
+- **Kafelki: CARTO z naszym kluczem** (bez klucza pokazują „API KEY REQUIRED”). Kafelki
+  OpenStreetMap odpadły: odrzucają zapytania bez nagłówka Referer — a Codex na Windows ładuje
+  widżet tak, że przeglądarka go nie wysyła („Access blocked”, osm.wiki/Blocked) — i ich zasady
+  wykluczają ruch publicznej aplikacji. Klucz jest jawny (trafia do każdej przeglądarki), więc
+  bez ograniczenia do domen: widżet działa w domenach chatbotów, a Codex nie wysyła Referer.
 
 ### 2a. Linki, pełny ekran, rozmiar danych
 

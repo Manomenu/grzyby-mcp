@@ -21,6 +21,9 @@ server:
   # Open /mcp to anyone while keeping the key: true lets requests without it through; false puts
   # the key back in charge. The platform repo decides, per environment.
   allowPublic: false
+  # CARTO's key for the map's tiles — not a secret, it ships in the widget to every browser. Empty =
+  # tiles with CARTO's watermark. The platform repo sets it.
+  cartoKey: ""
   # Extra Host headers /mcp answers to (the SDK's DNS-rebinding guard). The ingress host and the
   # web Service's own name (the smoke test calls through it) are always allowed.
   mcpHosts: []
