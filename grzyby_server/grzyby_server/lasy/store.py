@@ -103,17 +103,21 @@ def oldest_fetch(conn: Connection, tiles: Iterable[Tile]) -> datetime | None:
 
 
 def replace_zakazy(conn: Connection, features: Iterable[Feature]) -> int:
-    conn.execute("DELETE FROM zakazy_wstepu")
+    """Raises KeyError on a feature of another shape — before deleting anything, so the caller
+    can keep the old bans."""
     rows = [
         (
             feature["properties"]["objectid"],
             _strip(feature["properties"]["nazwa_nadl"]),
-            feature["properties"]["data_koncowa"],
+            # A ban until further notice has no end date, and the GeoJSON then leaves the key out
+            # (first seen in October 2026).
+            feature["properties"].get("data_koncowa"),
             _geojson(feature),
         )
         for feature in features
         if feature["geometry"] is not None
     ]
+    conn.execute("DELETE FROM zakazy_wstepu")
     with conn.cursor() as cur:
         cur.executemany(
             """

@@ -32,13 +32,13 @@ def refresh(conn: Connection, get_json: GetJson, now: datetime) -> datetime | No
         if fetched is not None and now - fetched < FRESH_FOR:
             return fetched
         try:
-            features = list(sources.fetch_zakazy_wstepu(get_json))
+            count = store.replace_zakazy(conn, sources.fetch_zakazy_wstepu(get_json))
         except (OSError, ValueError, KeyError) as error:
             # OSError covers the network (URLError, timeouts), ValueError a body that is not JSON,
-            # KeyError JSON of another shape.
+            # KeyError JSON of another shape — in the page or in a ban's fields; replace_zakazy
+            # reads them all before it deletes anything.
             log.warning("entry bans not refreshed, keeping those from %s: %r", fetched, error)
             return fetched
-        count = store.replace_zakazy(conn, features)
         store.record_fetch(conn, SOURCE, now)
     log.info("entry bans refreshed: %d", count)
     return now
