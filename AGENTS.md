@@ -156,6 +156,20 @@ through the list and add what fits — or say in the change why something does n
 - **Database:** schema changes go into a new numbered migration, never an edited one; the
   queries get tests against the real PostgreSQL.
 - **API:** after changing a model the API exposes, regenerate `openapi.d.ts` (`just api-types`).
+- **An outside service** (an API, a public dataset, a geocoder — anything not ours): the gate
+  tests the code against a recorded answer, but the service can change its answer without a commit
+  here. So a feature that calls one brings, in the same change:
+  - **a live test** — the real call, marked `@pytest.mark.live` and left out of the gate
+    (`addopts = ["-m", "not live"]`), run by `scripts/.internal/live-check.sh`;
+  - **a daily workflow** (`.github/workflows/live.yml`: a cron and `workflow_dispatch`) that runs it
+    and, when red, posts to the project's Discord alerts channel through a repo secret the platform
+    repo's `setup.sh` sets;
+  - **a failure that degrades, not breaks:** reading the answer counts as part of the call — a
+    missing field or a new shape is handled like the service being down (keep the last good data,
+    say it may be old), and nothing stored is replaced until the new answer has been read whole.
+
+  Here: `grzyby_server/tests/live/`, `live.yml`, `lasy/zakazy.py`. In October 2026 the daily run
+  caught BDL dropping `data_koncowa` from a ban the day it happened.
 - **Deployment:** compose and the chart learn about the new service or setting (section 2).
 - **Smoke test** (`deploy/chart/templates/smoke-test.yaml`): add a line when the feature
   brings something that can break only on the cluster and can be checked without logging
