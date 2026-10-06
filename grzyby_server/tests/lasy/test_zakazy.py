@@ -40,3 +40,22 @@ def test_a_failed_refresh_keeps_the_old_bans_and_says_how_old(conn: Connection) 
     assert zakazy.refresh(conn, down, NOW + timedelta(days=1)) == NOW
     assert conn.execute("SELECT id FROM zakazy_wstepu").fetchall() == [(1,)]
     assert store.fetched_at(conn, zakazy.SOURCE) == NOW
+
+
+def test_a_ban_until_further_notice_is_kept(conn: Connection) -> None:
+    # BDL leaves data_koncowa out of a ban with no end date; it is a ban all the same.
+    open_ended = ban(1, 23.0, 54.0)
+    open_ended["properties"] = {"objectid": 1, "nazwa_nadl": "Przedbórz"}
+
+    assert zakazy.refresh(conn, bans(open_ended), NOW) == NOW
+    assert conn.execute("SELECT id, valid_until FROM zakazy_wstepu").fetchall() == [(1, None)]
+
+
+def test_a_ban_of_another_shape_keeps_the_old_bans(conn: Connection) -> None:
+    # A field gone from BDL must cost a warning about old bans, not the whole answer.
+    zakazy.refresh(conn, bans(ban(1, 23.0, 54.0)), NOW)
+    odd = ban(2, 23.0, 54.0)
+    odd["properties"] = {"nazwa_nadl": "Przedbórz"}
+
+    assert zakazy.refresh(conn, bans(odd), NOW + zakazy.FRESH_FOR) == NOW
+    assert conn.execute("SELECT id FROM zakazy_wstepu").fetchall() == [(1,)]
