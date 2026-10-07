@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The tests against the real outside services (grzyby_server/tests/live): BDL, GDOŚ, Open-Meteo,
-# Nominatim. Not part of the gate — they need the internet and are slow; CI runs them daily
-# (.github/workflows/live.yml). Locally it starts PostgreSQL (just db); CI provides it.
+# Nominatim — the same check the cluster runs daily (miejsca/live.py), against the test database.
+# Not part of the gate: they need the internet and are slow. Starts PostgreSQL (just db) first.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 

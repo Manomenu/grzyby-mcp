@@ -30,7 +30,7 @@ dev = [
 [tool.pytest.ini_options]
 # The live tests call the real outside services; the gate leaves them out, live-check.sh runs them.
 addopts = ["--strict-markers", "--strict-config", "-m", "not live"]
-markers = ["live: calls the real outside services (scripts/.internal/live-check.sh, .github/workflows/live.yml)"]
+markers = ["live: calls the real outside services (scripts/.internal/live-check.sh; the cluster runs the same check daily)"]
 xfail_strict = true
 
 # Import contracts: which part of the server may import which. A layer may import the layers
@@ -70,10 +70,10 @@ layers = [
 ]
 
 [[tool.importlinter.contracts]]
-name = "Inside miejsca: web API > MCP tools > best day > search > map data > scoring, geocoding, answer cache > mushroom profiles > models"
+name = "Inside miejsca: web API, daily check of the services > MCP tools > best day > search > map data > scoring, geocoding, answer cache > mushroom profiles > models"
 type = "layers"
 containers = ["grzyby_server.miejsca"]
-layers = ["api", "tools", "best_day", "search", "map_data", "scoring | geocoding | cache", "grzyby", "model"]
+layers = ["api | live", "tools", "best_day", "search", "map_data", "scoring | geocoding | cache", "grzyby", "model"]
 
 [[tool.importlinter.contracts]]
 name = "Inside lasy: the monthly job > tiles on demand, entry bans > SQL > sources, models"

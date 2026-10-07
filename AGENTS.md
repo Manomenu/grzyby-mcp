@@ -122,9 +122,9 @@ against a real server and an empty database of its own, on ports apart from the 
 develop on. A test that fails in CI is retried once, only so the report tells a steady failure
 from a flaky one; passing on the retry still fails the job (`failOnFlakyTests`) — flaky is a
 bug, in the test or in the app. **CI** runs three jobs: `test` (the gate), `e2e`, and `build`,
-which builds the images only when both are green and publishes them only from `master`. A
-fourth workflow, `live.yml`, runs the tests against the real outside services once a day
-(`scripts/.internal/live-check.sh`) — the only check that notices a service changing under us.
+which builds the images only when both are green and publishes them only from `master`. The
+outside services are checked once a day from the cluster, not from CI (`templates/live-check.yaml`,
+`miejsca/live.py`) — the only check that notices a service changing under us.
 
 **After deploy**, Argo runs `deploy/chart/templates/smoke-test.yaml` (a PostSync Job with
 curl): a handful of read-only requests through the real Services, the way traffic arrives
@@ -161,15 +161,20 @@ through the list and add what fits — or say in the change why something does n
   here. So a feature that calls one brings, in the same change:
   - **a live test** — the real call, marked `@pytest.mark.live` and left out of the gate
     (`addopts = ["-m", "not live"]`), run by `scripts/.internal/live-check.sh`;
-  - **a daily workflow** (`.github/workflows/live.yml`: a cron and `workflow_dispatch`) that runs it
-    and, when red, posts to the project's Discord alerts channel through a repo secret the platform
-    repo's `setup.sh` sets;
+  - **a daily check from production's network** — a CronJob in the chart, the server's image with
+    another command, asking the real services through the production code and database inside a
+    transaction it rolls back; when something is wrong it posts to the project's Discord alerts
+    channel (a webhook in a Secret the platform repo's `setup.sh` creates). Not a GitHub workflow:
+    a service can block GitHub's runners while answering production, and then the alarm is about
+    GitHub. Keep it light — once a day, a small area, no retries — within each service's terms;
   - **a failure that degrades, not breaks:** reading the answer counts as part of the call — a
     missing field or a new shape is handled like the service being down (keep the last good data,
     say it may be old), and nothing stored is replaced until the new answer has been read whole.
 
-  Here: `grzyby_server/tests/live/`, `live.yml`, `lasy/zakazy.py`. In October 2026 the daily run
-  caught BDL dropping `data_koncowa` from a ban the day it happened.
+  Here: `miejsca/live.py`, `templates/live-check.yaml`, `grzyby_server/tests/live/`,
+  `lasy/zakazy.py`. In October 2026 the daily run caught BDL dropping `data_koncowa` from a ban the
+  day it happened; a day later BDL or GDOŚ began refusing GitHub's runners (403), and the check
+  moved from GitHub Actions to the cluster.
 - **Deployment:** compose and the chart learn about the new service or setting (section 2).
 - **Smoke test** (`deploy/chart/templates/smoke-test.yaml`): add a line when the feature
   brings something that can break only on the cluster and can be checked without logging
@@ -426,7 +431,7 @@ Two vocabularies, chosen word by word:
   | `scripts/.internal/api-types.sh [--check]` | regenerate `grzyby_web/src/api/openapi.d.ts` after changing a model the API exposes. Never edit that file by hand |
   | `scripts/.internal/secrets.sh backup\|restore` | **not for agents** — the owner's copy of the `.env` files in Bitwarden (`just secrets`, section 7); it asks for the master password |
   | `scripts/.internal/claude-connector.sh` | **not for agents** — prints the production `/mcp` key for the owner to paste into Claude's connector (`just claude-connector`) |
-  | `scripts/.internal/live-check.sh` | the tests against the real outside services (BDL, GDOŚ, Open-Meteo, Nominatim; `grzyby_server/tests/live`) — not in the gate; CI runs them daily (`.github/workflows/live.yml`). Run it after touching how a service is called |
+  | `scripts/.internal/live-check.sh` | the tests against the real outside services (BDL, GDOŚ, Open-Meteo, Nominatim; `grzyby_server/tests/live`) — not in the gate; the cluster runs the same check daily (`miejsca/live.py`). Run it after touching how a service is called |
   | `scripts/.internal/screenshots.sh [playwright args]` | the README's pictures of the map widget (`grzyby_web/src/**/*.shots.ts`, config `e2e/screenshots.config.ts`) into `docs/img/`: real answers of the production server (`SHOTS_MCP` for another), laptop and phone. Run it after changing what the widget looks like |
   | `scripts/.internal/infra-status.sh` | what of the compose stack is up and on which ports (needs `jq`) |
 
