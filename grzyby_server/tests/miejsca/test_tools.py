@@ -142,18 +142,6 @@ def test_the_when_tool_is_listed_without_a_map_and_answers_in_text(
     assert "Kiedy na: kurka" in result["content"][0]["text"]
 
 
-@pytest.fixture
-def clean_tables(pool: ConnectionPool) -> Iterator[None]:
-    """For tests that go through the tool's own connection, which commits: empty the feature's
-    tables afterwards, so other tests find them as they expect."""
-    yield
-    with pool.connection() as conn:
-        conn.execute(
-            "TRUNCATE wydzielenia, obszary_chronione, fetched_tiles, geocoding_cache, fetches, zakazy_wstepu, pogoda, weather_fetches,"
-            " answer_cache"
-        )
-
-
 @pytest.mark.usefixtures("clean_tables")
 def test_the_when_tool_end_to_end(client: TestClient, pool: ConnectionPool, monkeypatch: pytest.MonkeyPatch) -> None:
     # The whole path — MCP, the tool, the area, the database, the days — with only the internet

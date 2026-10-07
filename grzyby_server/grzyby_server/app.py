@@ -10,6 +10,7 @@ from starlette.routing import Route
 
 from grzyby_server import db
 from grzyby_server.mcp_key import RequireKey
+from grzyby_server.miejsca.api import router as miejsca
 from grzyby_server.miejsca.tools import server as mcp
 from grzyby_server.settings import settings
 
@@ -71,3 +72,4 @@ app.router.routes.extend(
 )
 
 # Features add their routers here: app.include_router(notes) — and a layer in pyproject.toml.
+app.include_router(miejsca)

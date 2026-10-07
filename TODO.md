@@ -62,6 +62,9 @@ sprawdzimy licencji danych.
       ocena dla każdego grzyba i średnia z listy. Widoki „wszystkie” (średnia) i każdy grzyb
       osobno — każdy z własnymi miejscami; okienko lasu z oceną każdego grzyba. Liczby w profilach to wiedza
       grzybiarza, nie pomiar — do korekty po wyjściach w teren (etap 2).
+- [x] **Wyszukiwanie bez chatbota** (7.10.2026) — strona `/szukaj`: formularz i ta sama mapa,
+      strona jest hostem widżetu (`grzyby_web/src/miejsca/`); API `GET /api/miejsca` i
+      `/api/mapa.html` (`miejsca/api.py`). Pytanie w adresie strony — link do wyszukiwania.
 - [x] **Zdjęcia widżetu i README dla użytkownika** (5.10.2026) — cztery zdjęcia z prawdziwych
       odpowiedzi produkcji (`just screenshots`, `grzyby_web/src/miejsca/mapa.shots.ts`): laptop
       i telefon, w czacie i na pełnym ekranie, każde w innym trybie mapy. README mówi do grzybiarza;
