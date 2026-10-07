@@ -31,6 +31,12 @@ szans, **ponumerowane najlepsze miejsca** z uzasadnieniem i **link do trasy** w 
 Działa w całej Polsce. Pierwsze pytanie o nową okolicę trwa kilka sekund, bo dane o lasach dopiero
 przychodzą; potem jest szybko.
 
+## Bez chatbota
+
+To samo narzędzie działa też na stronie: **[grzyby.gugnowski.com/szukaj](https://grzyby.gugnowski.com/szukaj)** —
+wpisujesz miejscowość, wybierasz grzyby i dostajesz tę samą mapę. Wyszukiwanie jest w adresie
+strony, więc link do niego można zapisać albo wysłać znajomemu.
+
 ## Jak podłączyć
 
 Adres serwera: **`https://grzyby.gugnowski.com/mcp`** — bez logowania i bez klucza.

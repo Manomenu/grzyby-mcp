@@ -68,6 +68,8 @@ spec:
               }
               expect 200 /healthz                          # strona (nginx) żyje
               expect 200 /api/health '"ok"'                # serwer odpowiada (i ma bazę — bez niej nie wstaje)
+              expect 200 /api/mapa.html ontoolresult       # widżet dla strony /szukaj (bez chatbota)
+              expect 200 /szukaj 'id="root"'               # strona wyszukiwania (nginx podaje index.html)
               # MCP: lista narzędzi przez web, tak jak zawoła chatbot.
               got="$(curl -s -o /tmp/body -w '%{http_code}' -X POST "$WEB/mcp" \
                 -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' \

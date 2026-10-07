@@ -140,3 +140,12 @@ zła wartość kończy się błędem `ui.domain mismatch` zamiast mapy.
 - Specyfikacja: [ext-apps, apps.mdx](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx)
 - Helper serwerowy z oboma kluczami: `@modelcontextprotocol/ext-apps/server`, `registerAppTool()`
 - Python: `mcp.server.apps` (klasa `Apps`) w SDK `mcp`
+
+## Drugi host: strona `/szukaj`
+
+Ten sam widżet działa na naszej stronie, dla ludzi bez chatbota. Strona bierze go z
+`GET /api/mapa.html`, a odpowiedź z `GET /api/miejsca` (`miejsca/api.py` — to samo wyszukiwanie,
+te same limity i cache co narzędzie) i sama odgrywa hosta MCP Apps: `grzyby_web/src/miejsca/host.ts`
+odpowiada na `ui/initialize`, wysyła wynik po `initialized`, dopasowuje wysokość ramki, otwiera
+linki i przełącza pełny ekran. **Zmiana widżetu, która używa nowej wiadomości hosta, musi
+dostać odpowiedź także w `host.ts`** — sprawdza to `SearchPage.e2e.ts` na prawdziwym widżecie.

@@ -21,14 +21,356 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/miejsca": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Miejsca */
+        get: operations["miejsca_miejsca_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mapa.html": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Mapa */
+        get: operations["mapa_mapa_html_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * Answer
+         * @description What the tool returns: the spots, plus where the data comes from (CC BY 4.0 requires it).
+         */
+        Answer: {
+            /**
+             * Szukano Wokol
+             * @description Miejscowość, wokół której szukano — pełna nazwa z mapy, do sprawdzenia
+             */
+            szukano_wokol: string | null;
+            /**
+             * Grzyby
+             * @description Szukane grzyby, po polsku
+             */
+            grzyby: string[];
+            /** Promien Km */
+            promien_km: number;
+            /**
+             * Dzien
+             * @description Dzień, na który liczono ocenę (pogoda i sezon tego dnia)
+             */
+            dzien?: string | null;
+            /**
+             * Miejsca
+             * @description Najlepsze miejsca na wszystkie szukane grzyby naraz (średnia ich ocen); przy jednym grzybie — na niego
+             */
+            miejsca: components["schemas"]["Miejsce"][];
+            /**
+             * Miejsca Na Grzyb
+             * @description Przy kilku grzybach: najlepsze miejsca na każdy z osobna — zwykle inne niż wspólne
+             */
+            miejsca_na_grzyb?: {
+                [key: string]: components["schemas"]["Miejsce"][];
+            };
+            /**
+             * Uwagi
+             * @description Ostrzeżenia dla użytkownika: brak danych, nieaktualne zakazy wstępu itp.
+             */
+            uwagi: string[];
+            /** Zrodla */
+            zrodla: string;
+            mapa?: components["schemas"]["Mapa"] | null;
+        };
+        /**
+         * Drzewostany
+         * @description Every stand on the map, column by column — one list per attribute, all in the same order —
+         *     so the keys go once, not two thousand times. The size limit of a tool result is real
+         *     (docs/mcp-apps.md).
+         */
+        Drzewostany: {
+            /**
+             * Ksztalt
+             * @description Wielokąty z pierścieni, każdy pierścień jako encoded polyline
+             */
+            ksztalt: string[][][];
+            /**
+             * Wynik
+             * @description Ocena od 0 do 100 dla każdego wybranego grzyba
+             */
+            wynik: {
+                [key: string]: number[];
+            };
+            /** Gatunek */
+            gatunek: (string | null)[];
+            /** Siedlisko */
+            siedlisko: (string | null)[];
+            /** Wiek */
+            wiek: number[];
+        };
+        /**
+         * Grzyb
+         * @description The mushrooms the tool knows (their profiles: grzyby.py). Values are what the chatbot sends.
+         * @enum {string}
+         */
+        Grzyb: "borowik" | "podgrzybek" | "kurka" | "kozlarz" | "maslak" | "rydz";
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
         /** Health */
         Health: {
             /** Status */
             status: string;
+        };
+        /**
+         * Mapa
+         * @description What the widget colours: every stand around the place, the areas one may not enter, and
+         *     the rules behind the colours. Not for the chatbot to read — the text has what it needs.
+         */
+        Mapa: {
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            drzewostany: components["schemas"]["Drzewostany"];
+            /**
+             * Pominiete
+             * @description Ile najsłabszych drzewostanów nie zmieściło się na mapie
+             */
+            pominiete: number;
+            /** Obszary */
+            obszary: components["schemas"]["ObszarNaMapie"][];
+            reguly: components["schemas"]["Reguly"];
+            /**
+             * Pogoda
+             * @description Kwadrat siatki (wiersz_kolumna) → pogoda; bez kwadratów bez danych
+             */
+            pogoda: {
+                [key: string]: components["schemas"]["PogodaKwadratu"];
+            };
+            /**
+             * Kwadrat
+             * @description Rozmiar kwadratu siatki w stopniach: szerokość, długość
+             */
+            kwadrat: [
+                number,
+                number
+            ];
+        };
+        /**
+         * Miejsce
+         * @description One spot worth walking to: a forest stand, why it is promising, and the way there.
+         */
+        Miejsce: {
+            /**
+             * Nazwa
+             * @description Krótki opis miejsca, np. „bór sosnowy, 76 lat”
+             */
+            nazwa: string;
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /**
+             * Dlaczego
+             * @description Uzasadnienie po polsku: drzewa, wiek, siedlisko, pogoda
+             */
+            dlaczego: string;
+            /**
+             * Trasa
+             * @description Link do trasy w Google Maps
+             */
+            trasa: string;
+            /**
+             * Adres Lesny
+             * @description Adres leśny wydzielenia w Banku Danych o Lasach
+             */
+            adres_lesny: string;
+        };
+        /**
+         * Miesiac
+         * @description A month, numbered as datetime numbers it, so `Miesiac(now.month)` is this one.
+         * @enum {integer}
+         */
+        Miesiac: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
+        /**
+         * ObszarKind
+         * @description Why an area may not be entered. The values are what the database and the map use.
+         * @enum {string}
+         */
+        ObszarKind: "park_narodowy" | "rezerwat" | "zakaz_wstepu";
+        /** ObszarNaMapie */
+        ObszarNaMapie: {
+            rodzaj: components["schemas"]["ObszarKind"];
+            /** Nazwa */
+            nazwa: string;
+            /** Ksztalt */
+            ksztalt: string[][];
+        };
+        /**
+         * PogodaKwadratu
+         * @description The weather over one tile of the grid, for the map's weather mode.
+         */
+        PogodaKwadratu: {
+            /**
+             * Opad
+             * @description Deszcz 3–14 dni temu, mm
+             */
+            opad: number;
+            /**
+             * Wilgotnosc Gleby
+             * @description m³/m³ na głębokości 3–9 cm
+             */
+            wilgotnosc_gleby: number | null;
+            /**
+             * Temperatura
+             * @description Średnia z 5 dni, °C
+             */
+            temperatura: number;
+            /**
+             * Wilgoc
+             * @description Jak mokro, od 0 do 1 — ten sam wzór, co w ocenie
+             */
+            wilgoc: number;
+        };
+        /**
+         * ProfilGrzyba
+         * @description Where and when one mushroom grows, as factors from 0 (never) to 1 (its favourite) — the
+         *     data of the score (scoring.py), and of the map's explanations.
+         */
+        ProfilGrzyba: {
+            /**
+             * Nazwa
+             * @description np. „koźlarz”
+             */
+            nazwa: string;
+            /**
+             * Dopelniacz
+             * @description np. „koźlarza” — „dobrze dla koźlarza”
+             */
+            dopelniacz: string;
+            /**
+             * Drzewa
+             * @description Kod gatunku panującego w BDL → czynnik; brak = drzewo nie dla niego
+             */
+            drzewa: {
+                [key: string]: number;
+            };
+            /**
+             * Siedliska
+             * @description Grupa siedlisk (grzyby.GRUPY_SIEDLISK) → czynnik
+             */
+            siedliska: {
+                [key: string]: number;
+            };
+            /**
+             * Wiek
+             * @description Czynnik dla każdej klasy wieku (grzyby.KLASY_WIEKU)
+             */
+            wiek: [
+                number,
+                number,
+                number,
+                number
+            ];
+            /**
+             * Sezon
+             * @description Miesiąc → czynnik; miesiąca, którego nie ma, grzyb nie rośnie
+             */
+            sezon: {
+                [key: string]: number;
+            };
+            /**
+             * Temperatura
+             * @description Najlepsza średnia temperatura z 5 dni przed owocnikowaniem, °C
+             */
+            temperatura: number;
+        };
+        /**
+         * Reguly
+         * @description The tables of the score (grzyby.py) as they are, so the map explains a stand with the same
+         *     words and numbers its score came from.
+         */
+        Reguly: {
+            /**
+             * Drzewa
+             * @description Kod gatunku → (nazwa, przymiotnik)
+             */
+            drzewa: {
+                [key: string]: [
+                    string,
+                    string
+                ];
+            };
+            /**
+             * Siedliska
+             * @description Kod typu siedliska → (grupa, opis)
+             */
+            siedliska: {
+                [key: string]: [
+                    string,
+                    string
+                ];
+            };
+            /**
+             * Grupy Siedlisk
+             * @description Grupa → nazwa
+             */
+            grupy_siedlisk: {
+                [key: string]: string;
+            };
+            /**
+             * Klasy Wieku
+             * @description (poniżej lat, nazwa); ostatnia bez górnej granicy
+             */
+            klasy_wieku: [
+                number | null,
+                string
+            ][];
+            /**
+             * Grzyby
+             * @description Profile wybranych grzybów
+             */
+            grzyby: {
+                [key: string]: components["schemas"]["ProfilGrzyba"];
+            };
+            /** @description Miesiąc, dla którego liczono ocenę */
+            miesiac: components["schemas"]["Miesiac"];
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
         };
     };
     responses: never;
@@ -55,6 +397,61 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    miejsca_miejsca_get: {
+        parameters: {
+            query: {
+                miejscowosc: string;
+                grzyby: components["schemas"]["Grzyb"][];
+                promien_km?: number;
+                ile_miejsc?: number;
+                za_ile_dni?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Answer"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mapa_mapa_html_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
                 };
             };
         };

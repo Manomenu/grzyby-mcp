@@ -22,9 +22,9 @@ const theme = createTheme({
     headings: { fontFamily: "'Fraunces Variable', Georgia, serif", fontWeight: "600" },
 });
 
-// The page itself is the forest at dusk; the text sits on a paper panel (App.tsx).
+// The page itself is the forest at dusk; the text sits on panels of warm paper, not screen white.
 const resolver: CSSVariablesResolver = () => ({
-    variables: {},
+    variables: { "--grzyby-paper": "#f8f3e6", "--grzyby-ink": "#2a2a22" },
     light: { "--mantine-color-body": "#18211a" },
     dark: {},
 });
