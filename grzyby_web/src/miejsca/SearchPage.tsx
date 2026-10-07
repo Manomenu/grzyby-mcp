@@ -54,7 +54,7 @@ export function SearchPage() {
     }
 
     return (
-        <Container size="lg" px="xs" py={{ base: "xs", sm: "lg" }}>
+        <Container size="lg" px="xs" py={{ base: "xs", sm: "lg" }} pos="relative">
             <Stack gap="md">
                 <Paper bg="var(--grzyby-paper)" c="var(--grzyby-ink)" radius="lg" shadow="xl" p={{ base: "md", sm: "lg" }}>
                     <form onSubmit={submit}>

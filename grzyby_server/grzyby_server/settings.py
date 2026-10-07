@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     # server.cartoKey). Empty on a laptop: the tiles still come, with CARTO's watermark.
     carto_key: str = ""
 
+    # Where the daily check of the outside services (miejsca/live.py) reports problems: a Discord
+    # webhook. Unset on a laptop — the log only; the cluster reads it from the platform's Secret.
+    discord_webhook: str | None = None
+
     # Host headers /mcp answers to — the SDK's guard against DNS rebinding. Locally any port on
     # localhost (bare too: nginx forwards $host without the port); the cluster sets its own names
     # (chart: MCP_ALLOWED_HOSTS).

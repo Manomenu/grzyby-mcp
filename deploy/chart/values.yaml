@@ -39,6 +39,16 @@ importer:
     requests: { cpu: 50m, memory: 128Mi }
     limits: { memory: 384Mi }
 
+# The daily check of the outside services from the cluster's network (templates/live-check.yaml,
+# grzyby_server/miejsca/live.py): problems go to Discord through the Secret named here (key
+# DISCORD_WEBHOOK, created by the platform repo). Empty: the Job's log only.
+liveCheck:
+  schedule: "17 7 * * *" # 07:17 Polish time, off the hour
+  discordSecret: ""
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 384Mi }
+
 web:
   replicas: 1
   port: 8080

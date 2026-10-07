@@ -1,0 +1,56 @@
+{{- /*
+Codzienna kontrola zewnętrznych usług (grzyby_server/miejsca/live.py): prawdziwe wyszukiwanie koło
+Suwałk przez kod i bazę produkcji, w transakcji wycofanej na końcu — BDL, GDOŚ, Open-Meteo
+i Nominatim pytane od nowa. Stąd, a nie z GitHuba: z sieci, z której pyta produkcja (od
+października 2026 BDL albo GDOŚ odmawia serwerom GitHuba). Problem → wiadomość na Discordzie.
+
+Ten sam obraz co serwer, inna komenda. Od razu, bez czekania na harmonogram:
+  kubectl -n <namespace> create job --from=cronjob/<release>-live-check <release>-live-check-now
+*/ -}}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "app.name" . }}-live-check
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: live-check
+spec:
+  schedule: {{ .Values.liveCheck.schedule | quote }}
+  timeZone: Europe/Warsaw
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      # Bez ponawiania: kolejna próba jutro albo ręcznie — powtórka tylko zdublowałaby alarm.
+      backoffLimit: 0
+      activeDeadlineSeconds: 600
+      template:
+        metadata:
+          labels:
+            {{- include "app.labels" . | nindent 12 }}
+            app.kubernetes.io/component: live-check
+        spec:
+          restartPolicy: Never
+          {{- with .Values.image.pullSecret }}
+          imagePullSecrets:
+            - name: {{ . }}
+          {{- end }}
+          containers:
+            - name: live-check
+              image: {{ include "app.image" (dict "Values" .Values "component" "server") }}
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command: ["python", "-m", "grzyby_server.miejsca.live"]
+              envFrom:
+                {{- with .Values.server.databaseSecret }}
+                - secretRef:
+                    name: {{ . }}
+                {{- end }}
+                {{- with .Values.liveCheck.discordSecret }}
+                # Opcjonalny: bez niego kontrola i tak działa, tylko nikomu nie mówi.
+                - secretRef:
+                    name: {{ . }}
+                    optional: true
+                {{- end }}
+              resources:
+                {{- toYaml .Values.liveCheck.resources | nindent 16 }}

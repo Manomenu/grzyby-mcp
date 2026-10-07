@@ -93,7 +93,8 @@ def load(conn: Connection, get_json: GetJson, tiles: Sequence[Tile], now: dateti
                     stands, areas = fetch.result()
                 except (OSError, ValueError, KeyError) as error:
                     # One line, not a traceback: the reason is the service, and a dozen tiles fail at once.
-                    log.warning("tile %s not fetched, its previous data stays: %r", tile.id, error)
+                    # The address says which service: a tile asks BDL and GDOŚ.
+                    log.warning("tile %s not fetched from %s, its previous data stays: %r", tile.id, getattr(error, "url", "?"), error)
                     failed.append(tile)
                     continue
                 with conn.transaction():
