@@ -43,7 +43,8 @@ importer:
 # grzyby_server/miejsca/live.py): problems go to Discord through the Secret named here (key
 # DISCORD_WEBHOOK, created by the platform repo). Empty: the Job's log only.
 liveCheck:
-  schedule: "17 7 * * *" # 07:17 Polish time, off the hour
+  # 10:17 Polish time, off the hour — BDL answered 500s around 07:17 two mornings in a row (October 2026)
+  schedule: "17 10 * * *"
   discordSecret: ""
   resources:
     requests: { cpu: 50m, memory: 128Mi }
