@@ -1,3 +1,5 @@
+{{- /* Everything renders only while the release is enabled (values.yaml, enabled). */ -}}
+{{- if .Values.enabled }}
 {{- /*
 Codzienna kontrola zewnętrznych usług (grzyby_server/miejsca/live.py): prawdziwe wyszukiwanie koło
 Suwałk przez kod i bazę produkcji, w transakcji wycofanej na końcu — BDL, GDOŚ, Open-Meteo
@@ -54,3 +56,4 @@ spec:
                 {{- end }}
               resources:
                 {{- toYaml .Values.liveCheck.resources | nindent 16 }}
+{{- end }}

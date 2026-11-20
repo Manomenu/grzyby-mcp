@@ -1,6 +1,11 @@
 # Defaults. The image tag is empty on purpose: the platform repo sets it, because it decides
 # what runs. A tag hard-coded here would make a code commit a deployment at the same time.
 
+# Off = the chart renders nothing: Argo prunes every object of the release and the cluster is free,
+# while what the chart does not own stays (the namespace, its Secrets, the database). The platform
+# repo switches a deployment off and on with this one value.
+enabled: true
+
 image:
   registry: ghcr.io/manomenu/grzyby-mcp
   tag: "" # e.g. sha-a1b2c3d — set by the Argo Application

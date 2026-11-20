@@ -1,3 +1,5 @@
+{{- /* Everything renders only while the release is enabled (values.yaml, enabled). */ -}}
+{{- if .Values.enabled }}
 {{- /*
 Odświeżenie danych o lasach (grzyby_server/lasy/importer.py): drzewostany z BDL, parki
 narodowe i rezerwaty z GDOŚ — tylko dla kwadratów, o które ktoś już pytał. Nowe okolice
@@ -52,3 +54,4 @@ spec:
               {{- end }}
               resources:
                 {{- toYaml .Values.importer.resources | nindent 16 }}
+{{- end }}

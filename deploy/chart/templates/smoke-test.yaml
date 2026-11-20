@@ -1,3 +1,5 @@
+{{- /* Everything renders only while the release is enabled (values.yaml, enabled). */ -}}
+{{- if .Values.enabled }}
 {{- /*
 Sprawdzenie po wdrożeniu. Argo uruchamia ten Job po każdej synchronizacji (hook PostSync),
 gdy reszta wydania jest już zdrowa. Kilka zapytań przez Service'y w klastrze — tak jak
@@ -90,4 +92,5 @@ spec:
             runAsUser: 100
             runAsNonRoot: true
             allowPrivilegeEscalation: false
+{{- end }}
 {{- end }}

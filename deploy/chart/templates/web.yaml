@@ -1,3 +1,5 @@
+{{- /* Everything renders only while the release is enabled (values.yaml, enabled). */ -}}
+{{- if .Values.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -61,3 +63,4 @@ spec:
   ports:
     - port: 80
       targetPort: {{ .Values.web.port }}
+{{- end }}

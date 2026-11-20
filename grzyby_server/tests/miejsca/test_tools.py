@@ -3,7 +3,7 @@
 import hashlib
 from collections.abc import Iterator
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, override
 
 import pytest
 from fastapi.testclient import TestClient
@@ -145,15 +145,25 @@ def test_the_when_tool_is_listed_without_a_map_and_answers_in_text(
 @pytest.mark.usefixtures("clean_tables")
 def test_the_when_tool_end_to_end(client: TestClient, pool: ConnectionPool, monkeypatch: pytest.MonkeyPatch) -> None:
     # The whole path — MCP, the tool, the area, the database, the days — with only the internet
-    # stood in for: a downpour yesterday, so a later day is the best.
+    # stood in for: a downpour yesterday, so a later day is the best. The tool's clock stands at
+    # mid-September: on the real date, out of season (November on), no day looks good at all.
+    in_season = datetime(2026, 9, 15, 8, tzinfo=POLAND)
+
+    class SeasonClock(datetime):
+        @classmethod
+        @override
+        def now(cls, tz: Any = None) -> "SeasonClock":
+            return cls.fromtimestamp(in_season.timestamp(), tz)
+
     services = FakeWeb(
         {
             geocoding.NOMINATIM: [{"lat": "54.10", "lon": "22.93", "display_name": "Suwałki, województwo podlaskie, Polska"}],
             **forest_services(
-                stands=[stand("pine", 22.93, 54.10)], weather=open_meteo(datetime.now(POLAND).date(), rain=30, rain_days_ago=1, soil=0.15)
+                stands=[stand("pine", 22.93, 54.10)], weather=open_meteo(in_season.date(), rain=30, rain_days_ago=1, soil=0.15)
             ),
         }
     )
+    monkeypatch.setattr(tools, "datetime", SeasonClock)
     monkeypatch.setattr(tools, "get_json", services)
     monkeypatch.setattr(db, "pool", pool)
 
