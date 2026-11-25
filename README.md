@@ -1,70 +1,77 @@
 # Gdzie na grzyby
 
-Podpowiadacz dla grzybiarzy w Twoim chatbocie (Claude, ChatGPT). Pytasz po prostu: „gdzie na
-podgrzybki koło Suwałk?”, a w odpowiedzi dostajesz **mapę lasów w okolicy** pokolorowaną według
-szans, **ponumerowane najlepsze miejsca** z uzasadnieniem i **link do trasy** w Google Maps.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/visual/board/img/readme/hero-dark.png">
+  <img alt="Gdzie na grzyby (where to pick mushrooms), an MCP server: ask your chatbot (Claude, ChatGPT) where to pick mushrooms in Poland and get a map of forests coloured by your chances, with the best spots and a route. Works without a chatbot too; no login, no key. 6 mushroom groups, up to 15 spots on the map, 5 days ahead, state forests in all of Poland." src="docs/visual/board/img/readme/hero-light.png" width="100%">
+</picture>
 
-![Mapa w czacie na laptopie: podgrzybki koło Suwałk, dziesięć ponumerowanych miejsc w okręgu 10 km, lasy pokolorowane według oceny](docs/img/laptop-chat.png)
+*Gdzie na grzyby* is Polish for “where to pick mushrooms”. The app, its map and its answers are in Polish.
 
-![Mapa na pełnym ekranie na laptopie: Płociczno-Osiedle, okrąg 2 km, lasy pokolorowane według gatunku drzew](docs/img/laptop-fullscreen.png)
+![The map in a laptop chat: bay boletes near Suwałki, ten numbered spots in a 10 km circle, forests coloured by score](docs/img/laptop-chat.png)
+
+![The map full screen on a laptop: Płociczno-Osiedle, a 2 km circle, forests coloured by tree species](docs/img/laptop-fullscreen.png)
 
 <p align="center">
-  <img src="docs/img/phone-chat.png" width="49%" alt="Mapa w czacie na telefonie: prawdziwki i podgrzybki koło Chełma, kwadraty pogody — gdzie ziemia jest mokra po deszczu" />
-  <img src="docs/img/phone-fullscreen.png" width="49%" alt="Mapa na pełnym ekranie na telefonie: Augustów, lasy pokolorowane według wieku drzewostanu" />
+  <img src="docs/img/phone-chat.png" width="49%" alt="The map in a phone chat: boletes and bay boletes near Chełm, weather squares showing where the ground is wet after rain" />
+  <img src="docs/img/phone-fullscreen.png" width="49%" alt="The map full screen on a phone: Augustów, forests coloured by stand age" />
 </p>
 
-## Co dostajesz
+## What you get
 
-- **Miejsca, nie ogólniki.** Konkretne kawałki lasu (drzewostany) w promieniu, który podasz, co
-  najmniej kilometr od siebie, ponumerowane na mapie — domyślnie 3, na prośbę do 15.
-- **Dlaczego właśnie tam:** jakie drzewa, jaki las, ile ma lat, czy to sezon na ten grzyb i jaka
-  była pogoda — deszcz sprzed kilku dni, wilgotność gleby, temperatura, przymrozki.
-- **Każdy grzyb osobno.** Borowik, podgrzybek, kurka, koźlarz, maślak, rydz — każdy lubi co innego,
-  więc każdy ma swoje miejsca. Pytasz o kilka naraz: dostajesz miejsca na wszystkie i na każdy z osobna.
-- **Mapa z trybami:** wynik, drzewa, wiek, siedlisko (typ lasu) i pogoda. Kliknięcie w las pokazuje,
-  skąd jego ocena. Na telefonie i na pełnym ekranie też.
-- **Kiedy jechać:** „kiedy najlepiej na kurki koło Augustowa?” — ocena okolicy na dziś i na 5 dni
-  naprzód, z najlepszym dniem.
-- **Tylko tam, gdzie wolno:** pomija parki narodowe, rezerwaty i lasy z aktualnym zakazem wstępu
-  (np. przy zagrożeniu pożarowym).
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/visual/board/img/readme/features-dark.png">
+  <img alt="What you get. Spots, not generalities: specific forest stands at least a kilometre apart, 3 by default, up to 15. Why right there: trees, forest age, season and recent weather. Each mushroom on its own: spots for all together and for each separately. A map with modes: score, trees, age, habitat, weather; a click explains the score. When to go: today and 5 days ahead, with the best day. Only where you may enter: skips national parks, nature reserves and forests under an entry ban." src="docs/visual/board/img/readme/features-light.png" width="100%">
+</picture>
 
-Działa w całej Polsce. Pierwsze pytanie o nową okolicę trwa kilka sekund, bo dane o lasach dopiero
-przychodzą; potem jest szybko.
+The mushrooms it knows: borowik (king bolete and its relatives), podgrzybek (bay bolete), kurka (chanterelle), koźlarz
+(birch and aspen boletes), maślak (slippery jack) and rydz (saffron milk cap).
 
-## Bez chatbota
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/visual/board/img/readme/choose-dark.png">
+  <img alt="What to ask. Where are bay boletes near Suwałki: a map and 3 spots. 10 chanterelle spots within 20 km of Augustów: a map and 10 spots. Best day for chanterelles near Augustów: the best day. No chatbot: the website grzyby.gugnowski.com/szukaj." src="docs/visual/board/img/readme/choose-light.png" width="100%">
+</picture>
 
-To samo narzędzie działa też na stronie: **[grzyby.gugnowski.com/szukaj](https://grzyby.gugnowski.com/szukaj)** —
-wpisujesz miejscowość, wybierasz grzyby i dostajesz tę samą mapę. Wyszukiwanie jest w adresie
-strony, więc link do niego można zapisać albo wysłać znajomemu.
+The first question about a new area takes a few seconds, because its forest data is fetched then; after that it is quick.
 
-## Jak podłączyć
+## Without a chatbot
 
-Adres serwera: **`https://grzyby.gugnowski.com/mcp`** — bez logowania i bez klucza.
+The same tool runs on a page: **[grzyby.gugnowski.com/szukaj](https://grzyby.gugnowski.com/szukaj)**. Type a place, choose
+the mushrooms and get the same map. The search is in the page's address, so a link to it can be saved or sent to a friend.
 
-Instrukcja krok po kroku jest na stronie **[grzyby.gugnowski.com](https://grzyby.gugnowski.com)**,
-osobno dla Claude (claude.ai i aplikacja na komputer), ChatGPT i Claude Code — czyli także dla
-klienta agentowego w terminalu.
+## Connect it
 
-Po aktualizacji serwera odłącz i podłącz konektor ponownie, jeśli mapa wygląda po staremu —
-chatboty zapamiętują jej starą wersję.
+Server address: **`https://grzyby.gugnowski.com/mcp`**, no login and no key.
 
-## Czego nie wie
+Step-by-step instructions (in Polish) are at **[grzyby.gugnowski.com](https://grzyby.gugnowski.com)**, separately for Claude
+(claude.ai and the desktop app), ChatGPT and Claude Code, so for an agent in the terminal too.
 
-- **Zna tylko lasy państwowe.** Lasy prywatne i gminne są na mapie puste — nie dlatego, że nic tam
-  nie rośnie, tylko dlatego, że nie ma o nich danych.
-- **Ocena to wzór, nie wyrocznia.** Łączy wiedzę grzybiarzy o tym, co który grzyb lubi, z pogodą
-  ostatnich dni. Podpowiada, gdzie warto zacząć; grzyby i tak trzeba znaleźć samemu — i znać.
-  Nie zbieraj grzybów, których nie umiesz rozpoznać.
-- **Zakazy wstępu sprawdzaj na miejscu** — tablice przy lesie są ważniejsze niż mapa.
+If the map looks old after a server update, disconnect the connector and connect it again: chatbots remember its old version.
 
-## Skąd dane
+## How it works
 
-- Drzewostany i zakazy wstępu: [Bank Danych o Lasach](https://www.bdl.lasy.gov.pl/) (CC BY 4.0).
-- Parki narodowe i rezerwaty: Generalna Dyrekcja Ochrony Środowiska.
-- Pogoda: [Open-Meteo](https://open-meteo.com/) (CC BY 4.0).
-- Położenie miejscowości: Nominatim, © autorzy [OpenStreetMap](https://www.openstreetmap.org/copyright).
-- Podkład mapy: © autorzy OpenStreetMap, © [CARTO](https://carto.com/attributions).
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/visual/board/img/readme/flow-dark.png">
+  <img alt="Where an answer comes from. 1 You ask a chatbot or the website: a place and a radius, which mushrooms, which day. 2 Forest stands from the Forest Data Bank (BDL): trees, age, habitat, without parks, reserves or entry bans. 3 Recent weather from Open-Meteo: rain and soil moisture, temperature, frost. 4 An open formula, no AI: what the mushroom likes and whether it is in season. 5 A map in the chat or the browser: numbered spots, why there, a route link." src="docs/visual/board/img/readme/flow-light.png" width="100%">
+</picture>
 
-Projekt hobbystyczny, darmowy, bez reklam i bez zbierania danych o Tobie.
+## What it doesn't know
 
-Dla programistów: [docs/dev/README.md](docs/dev/README.md).
+- **State forests only.** Private and municipal forests are blank on the map, not because nothing grows there but because
+  there is no data about them.
+- **The score is a formula, not an oracle.** It combines what pickers know about each mushroom with the weather of recent
+  days. It suggests where to start; you still have to find the mushrooms yourself, and know them.
+  Never pick a mushroom you can't identify.
+- **Check entry bans on site.** The signs at the forest matter more than the map.
+
+## Data sources
+
+- Forest stands and entry bans: [Bank Danych o Lasach](https://www.bdl.lasy.gov.pl/) (Forest Data Bank, CC BY 4.0).
+- National parks and nature reserves: Generalna Dyrekcja Ochrony Środowiska.
+- Weather: [Open-Meteo](https://open-meteo.com/) (CC BY 4.0).
+- Place locations: Nominatim, © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors.
+- Base map: © OpenStreetMap contributors, © [CARTO](https://carto.com/attributions).
+
+A hobby project: free, no ads, no collecting of data about you.
+
+For developers (in Polish): [docs/dev/README.md](docs/dev/README.md). The pictures in this README are drawn on
+`docs/visual/board/readme.html` and rendered with `vdoc.py render` of the suwagent plugin; `just screenshots` takes the map's.
